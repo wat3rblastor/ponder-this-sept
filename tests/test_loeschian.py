@@ -169,5 +169,36 @@ class TestSieveBounds(unittest.TestCase):
         self.assertTrue(0.15 < count / 100_000 < 0.30, count / 100_000)
 
 
+
+class TestConstructiveCrossCheck(unittest.TestCase):
+    """src/crosscheck.py must agree with the bad-prime criterion, and every
+    representation it returns must satisfy x^2+x*y+y^2 = t exactly. This is the
+    independent check GOAL.md §8 requires before a record is claimed."""
+
+    def test_agrees_with_criterion_and_arithmetic(self):
+        import crosscheck
+        for t in range(0, 3000):
+            rep = crosscheck.represent(t)
+            self.assertEqual(rep is not None, is_loeschian(t),
+                             f"representability disagrees with criterion at t={t}")
+            if rep is not None:
+                x, y = rep
+                self.assertEqual(x * x + x * y + y * y, t, f"bad rep for t={t}")
+
+    def test_large_values(self):
+        import crosscheck
+        import random
+        rng = random.Random(4242)
+        checked = 0
+        for _ in range(200):
+            t = rng.randrange(10**14, 10**15)
+            rep = crosscheck.represent(t)
+            self.assertEqual(rep is not None, is_loeschian(t), f"t={t}")
+            if rep is not None:
+                x, y = rep
+                self.assertEqual(x * x + x * y + y * y, t, f"t={t}")
+                checked += 1
+        self.assertGreater(checked, 10, "too few large Loeschian samples")
+
 if __name__ == "__main__":
     unittest.main()
