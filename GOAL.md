@@ -76,6 +76,40 @@ sieving out `n` with odd `v_p` for some bad `p` (or directly enumerate `x² + xy
 
 ---
 
+## 2c. Gotchas and invariants (read before writing any search code)
+
+Every one of these has a plausible wrong version that silently produces garbage. Encode them as
+assertions or unit tests, not as comments.
+
+- **It is `p ≡ 2 (mod 3)`, not `3 (mod 4)`.** The sum-of-two-squares rule is the one most likely
+  to come out of muscle memory. Wrong modulus ⇒ a "Loeschian test" that is wrong for
+  2, 5, 11, 17, … Unit-test against the known prefix `0, 1, 3, 4, 7, 9, 12, 13, 16, 19, 21`
+  *and* against brute-force `x² + xy + y²` enumeration, every time the test changes.
+- **Integer width.** Terms can exceed 2^63. numpy `int64` overflows **silently** and will report
+  a wrong Loeschian verdict with no error. Any array work must either stay provably below 2^62
+  with an assertion on `a + (n-1)d`, or use Python ints / `dtype=object` / gmpy2. The verifier
+  must use Python ints, always.
+- **Sieve bound.** A sieve built to `N` says nothing about `m > N`; a lookup past the end that
+  returns `False` reads as "not Loeschian" and will make a real record look dead. Assert
+  `a + (n-1)d ≤ N` before any sieve lookup.
+- **Both endpoints and the count.** An `n`-term AP has `n-1` steps; the last term is
+  `a + (n-1)d`, not `a + nd`. Off-by-one here inflates or deflates reported lengths. The
+  verifier should print `n` and the explicit term list so the count is auditable.
+- **`0` and `1` are Loeschian** (`x=y=0`; `x=1,y=0`). Tests that start at 2 or treat 0 as invalid
+  will mis-evaluate APs starting low.
+- **Negative `x, y` are allowed** but add nothing: `x² + xy + y²` is symmetric and takes the same
+  value set over ℤ as over ℕ with the right pairs, so brute-force enumeration must still sweep
+  enough of the lattice. Only use enumeration as a cross-check on the prime-factorization test.
+- **`d ≥ 1`, strictly increasing, all terms `≥ 0`.** A search that allows `d = 0` finds an
+  infinitely long "progression" of one repeated Loeschian number. Assert `d ≥ 1`.
+- **Maximality.** When reporting length `n`, confirm `a - d` (if `≥ 0`) and `a + nd` are *not*
+  Loeschian, or say explicitly that the run may extend. Otherwise the record understates itself
+  and later sessions re-find the same thing.
+- **Never trust the searcher's own verdict.** Searchers use fast filters that are allowed to be
+  approximate in one direction. Only `src/verify.py`, factoring from scratch, mints a record.
+
+---
+
 ## 2b. Solve this as efficiently as possible
 
 Efficiency is a first-class requirement, not a nicety. The search space is unbounded; the only
@@ -98,6 +132,8 @@ way to reach `n ≥ 58` is to spend compute where it pays.
 - **Prefer structured construction to blind enumeration.** CRT/backtracking over bad primes and
   greedy `d` refinement have found long APs for others; raw scanning of `(a, d)` will not reach
   58.
+- **Checkpoint every long run.** See §3c — an uncheckpointed multi-hour search is wasted the
+  first time it is interrupted, and makes "already covered" unknowable.
 
 ## 3. Repository contract
 
@@ -132,6 +168,41 @@ Rules:
 
 ---
 
+## 3b. Environment (pinned — do not re-litigate per session)
+
+- **Python 3.11+**, run as `python3`. Dependencies live in `requirements.txt`; install with
+  `python3 -m pip install -r requirements.txt` into a venv at `.venv/` (git-ignored).
+- **Allowed and encouraged:** `gmpy2` (fast factoring, `is_square`, big-int arithmetic — the
+  single biggest easy win), `numpy` (vectorized sieving, subject to the int64 warning in §2c),
+  `sympy` (only as an *independent* cross-check implementation, not in hot loops — it is slow),
+  `ortools` if a CP-SAT encoding is tried. A C or Rust helper for an inner loop is fine; commit
+  the source plus a one-line build command, never just a binary.
+- **`make check` must exist and must pass** before any campaign is launched or any record is
+  minted. It runs the unit tests for the Loeschian test, the sieve, and the verifier, including
+  the §2c invariants. First command of every session after reading state.
+- If a dependency is added, update `requirements.txt` and say so in the PROGRESS.md entry.
+- Record machine facts that affect budgeting (core count, available RAM) in the campaign README,
+  since sweep sizes are chosen against them.
+
+---
+
+## 3c. Checkpointing (required for any run over ~5 minutes)
+
+Long searches must be resumable, otherwise an interruption loses hours and the
+"never re-search covered ground" rule in §2b cannot be honored.
+
+- Every campaign script writes `experiments/<date>-<slug>/checkpoint.json` at least every 60
+  seconds: the search-space cursor (e.g. last `d` completed, `a`-range position), best-so-far
+  `(a, d, n)`, and a count of candidates examined.
+- Every campaign script accepts `--resume` and continues from that checkpoint.
+- On normal completion, write `done.json` stating the space **fully exhausted**, in a form a
+  later session can compare against (explicit family definition + ranges, not prose).
+- Flush on signal: handle SIGINT/SIGTERM by checkpointing before exit, so Ctrl-C is cheap.
+- Prefer many bounded shards over one unbounded run — a shard that finishes is a fact; a shard
+  that was killed at 80% is only a fact if it checkpointed.
+
+---
+
 ## 4. Work loop (what to do when a session starts)
 
 1. Read `records.json` + the last 2–3 entries of `PROGRESS.md`.
@@ -148,10 +219,33 @@ Rules:
 
 A session should always end with the repo in a state where step 1 is enough to resume.
 
+### Stall rule — switch strategy class rather than grinding
+
+Open-ended searches fail by over-investing in the first approach that half-worked. So:
+
+- **If three consecutive campaigns in the same strategy class produce no improvement in best `n`,
+  that class is parked.** Write "PARKED: <class>, after <campaigns>" in PROGRESS.md with what it
+  topped out at, and move to the next class.
+- Strategy classes, in rough order of expected payoff:
+  1. CRT / backtracking over bad primes (choose `d`'s bad-prime set, solve for `a` mod `p²`),
+  2. greedy / beam refinement of a known good `d` (`d' = k·d`, extend the run),
+  3. SAT / CP-SAT encoding of the residue constraints,
+  4. literature and OEIS reconnaissance (§5) for a construction we have not thought of,
+  5. randomized restart over `d`-families with many `p ≡ 1 (mod 3)` factors.
+- A parked class may be revived, but only with a *stated new idea*, not just more compute.
+- Conversely: if a class is improving `n` every campaign, stay in it and do not diversify.
+
 ---
 
 ## 5. Backlog (keep ordered; edit freely)
 
+- [ ] **Recon first (cheap, do before burning CPU):** check OEIS A003136 and the related
+      sequences/b-files for arithmetic progressions in Loeschian numbers, and look for anything
+      published by **Hugo Pfoertner** (the puzzle's proposer, an active OEIS contributor) on this
+      exact question. Note that the IBM page publishes only the record *lengths*, never the
+      `(a, d)` values, so there is nothing to copy — what we want is the construction style and
+      any known `d`-families. Record findings (including "nothing relevant") in PROGRESS.md and
+      cite URLs. One session's worth, max.
 - [ ] `src/loeschian.py`: bad-prime Loeschian test + segmented sieve up to `N`. Unit-test
       against the known prefix `0,1,3,4,7,9,12,13,16,19,21,…` and against brute-force
       `x²+xy+y²` enumeration.
