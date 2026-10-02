@@ -1,13 +1,15 @@
 {
   "g3_longest": {
-    "a": 73415383,
-    "d": 37418700,
-    "n": 36,
-    "last": 1383069883,
+    "a": 5413537078288507,
+    "d": 48916598396160,
+    "n": 43,
+    "last": 7468034210927227,
+    "K": 128,
+    "d_factored": "128 * 3*2*5*11*17*23*29*41*47*53",
     "verified": true,
-    "verifier": "src/verify.py 73415383 37418700 36 --maximal",
+    "verifier": "src/verify.py 5413537078288507 48916598396160 43 --maximal",
     "maximal_both_ends": true,
-    "method": "experiments/2026-10-02-calibration (flat sieve scan, d = 3741870*10)",
+    "method": "experiments/2026-10-03-ap58 (apsearch, Wroblewski two-stage, K=128)",
     "date": "2026-10-02"
   },
   "g1_min_last_term_35": {
@@ -21,8 +23,24 @@
     "date": "2026-10-02"
   },
   "g2_at_least_42": {
-    "achieved": false,
-    "note": "bonus (*) waypoint, not yet reached"
+    "achieved": true,
+    "n": 43,
+    "a": 5413537078288507,
+    "d": 48916598396160,
+    "verified": true,
+    "note": "bonus (*) waypoint cleared by the n=43 record above"
   },
-  "history": []
+  "history": [
+    {
+      "a": 73415383,
+      "d": 37418700,
+      "n": 36,
+      "last": 1383069883,
+      "verified": true,
+      "verifier": "src/verify.py 73415383 37418700 36 --maximal",
+      "maximal_both_ends": true,
+      "method": "experiments/2026-10-02-calibration (flat sieve scan, d = 3741870*10)",
+      "date": "2026-10-02"
+    }
+  ]
 }

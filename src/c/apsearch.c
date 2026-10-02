@@ -451,18 +451,39 @@ int main(int argc, char **argv) {
                     int b = __builtin_ctzll(sito);
                     sito &= sito - 1;
                     nsurv++;
-                    u64 a = R + (boff + (u64)b) * MOD;
-                    /* ---- stage 3: exact test, anchored so failures abort
-                     * fast; measure the true run length around index 0 ---- */
-                    if (!is_loeschian(a)) continue;
-                    u64 run = 1;
-                    for (u64 k = 1; k < nterms; k++) {
-                        u64 t2 = a + k * d;
-                        if (t2 < a) break;               /* u64 overflow guard */
-                        if (!is_loeschian(t2)) break;
+                    u64 a0 = R + (boff + (u64)b) * MOD;
+                    /* ---- stage 3: exact test of the whole admissible window.
+                     * The LONGEST run need not start at index 0, so test all
+                     * nterms and take the best run; then push outward past the
+                     * window ends, which is where a 58 can hide next to a 56.
+                     * Stage 3 fires ~1e-5 of residues, so this is free. ---- */
+                    u64 best_run = 0, best_start = 0, cur = 0, cur_start = 0;
+                    u64 want = (report > 1) ? (u64)report : 1;
+                    for (u64 k = 0; k < nterms; k++) {
+                        /* Give up on this window as soon as even a perfect
+                         * tail cannot reach the reporting threshold. Costs
+                         * ~19 term tests instead of 58 and recovers most of
+                         * the throughput that full-window scanning spent. */
+                        if (cur + (nterms - k) < want) break;
+                        u64 t2 = a0 + k * d;
+                        if (t2 < a0) break;              /* u64 overflow guard */
+                        if (is_loeschian(t2)) {
+                            if (cur == 0) cur_start = k;
+                            cur++;
+                            if (cur > best_run) { best_run = cur; best_start = cur_start; }
+                        } else cur = 0;
+                    }
+                    if (best_run == 0) continue;
+                    nconf++;
+                    /* extend outward from the best run */
+                    u64 a = a0 + best_start * d;
+                    u64 run = best_run;
+                    while (a >= d && is_loeschian(a - d)) { a -= d; run++; }
+                    for (;;) {
+                        u64 t2 = a + run * d;
+                        if (t2 < a || !is_loeschian(t2)) break;
                         run++;
                     }
-                    nconf++;
                     if ((int)run >= report || (int)run > global_best) {
                         if ((int)run > global_best) {
                             global_best = (int)run; gb_a = a; gb_d = d;
