@@ -103,6 +103,7 @@ way to reach `n ≥ 58` is to spend compute where it pays.
 
 ```
 GOAL.md            this file — objectives, state of the art, protocol
+ANSWER.md          THE DELIVERABLE — the human-readable answer (see §9)
 records.json       canonical machine-readable record of best-known results (see schema below)
 PROGRESS.md        append-only human log: one dated entry per work session
 src/               reusable code (sieve, verifier, searchers)
@@ -140,8 +141,10 @@ Rules:
    (c) G1 sweeps / lower bounds — only when G3 is done or stalled.
 3. Run the campaign in `experiments/<date>-<slug>/`.
 4. Verify any candidate with `src/verify.py`. Update `records.json` only on PASS.
-5. Append a PROGRESS.md entry: what was tried, what was found, what was ruled out, next step.
-6. Commit (see §7).
+5. If a record changed, rewrite `ANSWER.md` (§9) in the same session — it must never lag
+   `records.json`.
+6. Append a PROGRESS.md entry: what was tried, what was found, what was ruled out, next step.
+7. Commit (see §7).
 
 A session should always end with the repo in a state where step 1 is enough to resume.
 
@@ -204,6 +207,12 @@ When spawning:
   updates records, and commits. This keeps the record store single-writer.
 - Run independent subagents in one batch so they execute concurrently.
 
+**Model policy: every agent on this project runs Opus 5 — orchestrator, search agents, and
+cross-check agents alike.** Do not downgrade search or cross-check agents to a cheaper tier to
+save tokens. The real budget here is CPU-seconds, not tokens: a sharper pruning argument or a
+tighter inner loop is worth far more than the token difference, and a cross-check is only
+worth running if the checker is as strong as the thing it is checking.
+
 ---
 
 ## 7. Commit protocol
@@ -224,14 +233,49 @@ When spawning:
 
 ---
 
-## 8. Definition of done
+## 8. Definition of done — STOP CONDITION
 
-- **Required: a verified AP with `n ≥ 58`**, beating the published record of 57, recorded in
-  `records.json` with full verifier output. Until this exists, the project is unfinished.
-- G2 (`n ≥ 42`) should fall out of the G3 work; note it when it does.
-- G1: a verified 35-term AP whose last term we believe is minimal, with the searched space
-  documented well enough that the claim is auditable. Secondary.
+**The project is done the moment a verified AP with `n ≥ 58` exists.** That is the finish line,
+not a milestone. Do not keep searching for longer progressions afterwards, and do not treat this
+as an open-ended record chase.
 
-Past 58 there is no ceiling, so the project stays open-ended: after the mandatory bar is cleared,
-each session should still leave either a longer AP, a better G1 endpoint, a larger exhausted
-search space, or faster tooling.
+Finishing means, in this order:
+
+1. `src/verify.py` passes on all `n ≥ 58` terms.
+2. An independent cross-check (separate implementation, Opus 5) agrees.
+3. `records.json` updated, `ANSWER.md` written (§9), PROGRESS.md entry appended, committed.
+4. Report to the user. Then stop.
+
+Secondary goals exist only as fallbacks *before* the stop condition is met:
+
+- G2 (`n ≥ 42`) is a smoke test and should fall out of G3 work; just note it when it happens.
+- G1 (minimal 35-term endpoint) is something to work on only while a G3 search is blocked or
+  stalled. It is not required for done-ness and should not delay it.
+
+---
+
+## 9. The deliverable: `ANSWER.md`
+
+**This is where the user looks for the answer.** It lives at the repo root, is written in plain
+prose + numbers, and is self-contained: readable without opening any other file, any script, or
+this one. Create it as soon as there is any verified result worth reporting (even `n = 42`), and
+rewrite it whenever a record changes — never let it lag `records.json`.
+
+Required contents, in this order:
+
+1. **Headline, one line, at the very top.** The answer and nothing else, e.g.
+   `Longest Loeschian AP found: n = 58 terms, a = …, d = …` — and whether it clears the
+   mandatory bar of 58.
+2. **The progression**, written out: `a`, `d`, the last term `a + (n-1)d`, and all `n` terms
+   listed explicitly (or, if they are too large to be readable, the first few / last few plus a
+   one-line command that regenerates the full list).
+3. **Verification**: the `src/verify.py` invocation used and its PASS output, plus a note that
+   an independent cross-check agreed. A reader must be able to re-run one command and confirm it.
+4. **Why it works**, in a short paragraph: the structure of `d` (which bad primes divide it,
+   what residue class `a` sits in) so the result is understandable, not just assertable.
+5. **G1 status** if any 35-term work was done: best `a + 34d` found and the space searched.
+6. **How it was found**: which campaign directory, roughly how much compute, and the key pruning
+   idea. Two or three sentences.
+
+Keep it short — a page. Detail belongs in PROGRESS.md and the campaign READMEs; `ANSWER.md` is
+the answer.
