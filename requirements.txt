@@ -1,0 +1,8 @@
+# Stdlib only, deliberately.
+#
+# GOAL.md 3b allows gmpy2/numpy/sympy, but this machine has none of them and
+# the hot loops live in C (src/c/loeschsearch.c) where they would not help.
+# The verifier uses Python ints, which are exact at any size -- the one place
+# correctness matters most, so no dependency is the safer choice there.
+#
+# Install nothing:  python3 -m pip install -r requirements.txt
