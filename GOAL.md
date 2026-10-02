@@ -20,16 +20,20 @@ Example: `1, 7, 13, 19` — `n=4`, `a=1`, `d=6`.
 
 ### Objectives
 
-- **G1 (main):** find a **35-term** AP of Loeschian numbers **minimizing the last term**
-  `a + 34d`. Report `(a, d)`.
-- **G2 (bonus `*`):** find an AP with **≥ 42 terms**. Last term need not be small.
-- **G3 (bonus `**`):** find the AP with the **most** terms (> 42).
+- **G3 (MANDATORY — the point of this project):** find a verified AP of Loeschian numbers with
+  **n ≥ 58 terms**, beating the published record of 57. This is not optional and not "best
+  effort": the project is not done until an `n ≥ 58` AP is verified and recorded. Everything
+  else is secondary and may be deferred.
+- **G2 (bonus `*`, waypoint):** an AP with **≥ 42 terms**. Last term need not be small. Useful
+  only as a pipeline smoke test on the way to G3.
+- **G1 (secondary):** a **35-term** AP **minimizing the last term** `a + 34d`. Report `(a, d)`.
+  Work on this only once G3 is secured, or when a G3 search is blocked and waiting on something.
 
 ### Known bar (from the published solvers list — the contest is closed, these are the targets)
 
 Best published lengths: **n = 57** (Jackson La Vallee), then 55, 51, 50, 48, 47, 46, 45, 44.
-So: **G2 is table stakes, G3 means n ≥ 58.** G1's optimum is *not* published on the page —
-treat our best verified `a+34d` as the record and keep driving it down.
+So **n ≥ 58 is the mandatory bar**. G1's optimum is *not* published on the page — treat our
+best verified `a+34d` as the record and drive it down as a side quest.
 
 `a = 0` is a legal Loeschian number, but note `0, d, 2d, …` with `d` Loeschian requires every
 `k·d` Loeschian — do not accidentally "win" G1 with a degenerate reading. Progressions must be
@@ -72,6 +76,29 @@ sieving out `n` with odd `v_p` for some bad `p` (or directly enumerate `x² + xy
 
 ---
 
+## 2b. Solve this as efficiently as possible
+
+Efficiency is a first-class requirement, not a nicety. The search space is unbounded; the only
+way to reach `n ≥ 58` is to spend compute where it pays.
+
+- **Think before you brute-force.** Every hour of CPU should be justified by an argument from §2.
+  A pruning insight that shrinks the space is worth more than a faster inner loop. Derive the
+  necessary conditions on `d` *first*, then search only what survives them.
+- **Never re-search covered ground.** The campaign README + PROGRESS.md record exactly which
+  `(a, d)` space has been exhausted. Check it before launching anything.
+- **Reuse, don't rebuild.** One sieve, one verifier, one scoring function in `src/`. Campaign
+  scripts import them; they do not reimplement the Loeschian test.
+- **Cheap test first.** Filter candidates with small-bad-prime residue conditions (O(1) per
+  candidate) before any factoring. Factor only what survives. Verify fully only the final hit.
+- **Right tool for the inner loop.** Prototype in Python; if a sweep would take more than ~10
+  minutes of pure-Python work, move the hot loop to a C extension, numpy vectorization, or a
+  small C/Rust program. Measure before optimizing — profile one representative run.
+- **Bounded campaigns.** Every search gets an explicit budget (wall clock or iterations) and
+  reports partial results on exhaustion. No open-ended runs that produce nothing.
+- **Prefer structured construction to blind enumeration.** CRT/backtracking over bad primes and
+  greedy `d` refinement have found long APs for others; raw scanning of `(a, d)` will not reach
+  58.
+
 ## 3. Repository contract
 
 ```
@@ -107,9 +134,10 @@ Rules:
 ## 4. Work loop (what to do when a session starts)
 
 1. Read `records.json` + the last 2–3 entries of `PROGRESS.md`.
-2. Pick the next item from §5 "Backlog" (or add one). Prefer: (a) anything that makes the
-   verifier/sieve faster or more trustworthy, then (b) G3 length pushes, then (c) G1 lower
-   bounds / exhaustive sweeps.
+2. Pick the next item from §5 "Backlog" (or add one). Priority order is fixed by §1:
+   (a) tooling that G3 needs (sieve, verifier, scorer) — only until it is good enough,
+   (b) **G3 length pushes toward n ≥ 58** — the default activity,
+   (c) G1 sweeps / lower bounds — only when G3 is done or stalled.
 3. Run the campaign in `experiments/<date>-<slug>/`.
 4. Verify any candidate with `src/verify.py`. Update `records.json` only on PASS.
 5. Append a PROGRESS.md entry: what was tried, what was found, what was ruled out, next step.
@@ -128,10 +156,7 @@ A session should always end with the repo in a state where step 1 is enough to r
       verdict and the overall PASS/FAIL. Must be the only thing that can mint a record.
 - [ ] Baseline G2: reproduce *some* `n ≥ 42` AP by the §2-1 construction
       (`d = ∏ bad primes ≤ B`, CRT-search `a`). Establishes the pipeline end-to-end.
-- [ ] G1 sweep: for 35 terms, enumerate `d` in structured families and scan `a`, minimizing
-      `a + 34d`. Record the best and the search bound actually covered (for a provable-ish
-      lower bound, state exactly which `(a,d)` space was exhausted).
-- [ ] G3 push to `n ≥ 58`: hill-climb / beam search over `d` (choice of bad-prime set and
+- [ ] **G3 push to `n ≥ 58` (mandatory)**: hill-climb / beam search over `d` (choice of bad-prime set and
       exponents, plus `3^e` and `p ≡ 1 (3)` factors), scoring `d` by the longest run of
       Loeschian terms achievable. Consider:
       - greedy extension: take a good `(a,d)` and try `d' = k·d`;
@@ -139,8 +164,11 @@ A session should always end with the repo in a state where step 1 is enough to r
         (each must be handled by `v_p ≥ 2`);
       - CP-SAT / SAT encoding of the residue constraints;
       - search over `d` with many `p ≡ 1 (mod 3)` factors (free multiplicative slack).
-- [ ] Optimality pressure for G1: derive necessary conditions on `d` (which bad primes *must*
-      divide `d` for 35 terms) to prune the sweep, and write the argument down.
+- [ ] Prune first: derive necessary conditions on `d` for a given length `n` (which bad primes
+      *must* divide `d`), write the argument down, and use it to cut the search space before
+      spending compute.
+- [ ] G1 sweep (after G3): for 35 terms, enumerate `d` in structured families and scan `a`,
+      minimizing `a + 34d`. Record the best and exactly which `(a,d)` space was exhausted.
 - [ ] Sanity cross-check: independently re-verify current records with a second implementation
       (e.g. sympy factorint vs. our own) before claiming anything externally.
 
@@ -148,7 +176,20 @@ A session should always end with the repo in a state where step 1 is enough to r
 
 ## 6. Subagent protocol
 
-Subagents are encouraged — this problem parallelizes cleanly over disjoint `d`-families.
+Use subagents where they genuinely buy something, and not otherwise. They are the right tool for
+exactly two things here:
+
+1. **Disjoint parallel search.** The `d`-family space partitions cleanly; N agents on N disjoint
+   families is a real N× speedup. This is the main use.
+2. **Independent cross-checks.** A second agent re-deriving a record with its own implementation
+   catches the bug that would otherwise make us claim a wrong answer.
+
+Do **not** spawn a subagent for: a single sweep the orchestrator could run inline, reading one
+file, "exploring" without an owned partition, or anything whose result you'd have to redo
+yourself to trust. One agent per partition — no redundant duplicates of the same range.
+
+Sizing: a handful of concurrent agents on well-separated families, not dozens on slivers. If a
+partition is small enough that agent setup dominates its runtime, merge it into a neighbour.
 
 When spawning:
 
@@ -169,6 +210,8 @@ When spawning:
 
 - Commit after each meaningful unit: new/changed tooling, a completed campaign, a new record,
   or a GOAL/backlog revision. Don't batch unrelated work into one commit.
+- **No Claude/AI attribution in commits.** No `Co-Authored-By: Claude`, no "Generated with"
+  trailer, no 🤖 — commit messages describe the change only.
 - Message style: `<area>: <what changed>`, imperative, with the concrete result in the body.
   - `verify: add authoritative AP verifier`
   - `search: sweep d = 2·5·11·17·k for 35-term APs` (body: best `a+34d`, space covered)
@@ -183,10 +226,12 @@ When spawning:
 
 ## 8. Definition of done
 
+- **Required: a verified AP with `n ≥ 58`**, beating the published record of 57, recorded in
+  `records.json` with full verifier output. Until this exists, the project is unfinished.
+- G2 (`n ≥ 42`) should fall out of the G3 work; note it when it does.
 - G1: a verified 35-term AP whose last term we believe is minimal, with the searched space
-  documented well enough that the claim is auditable.
-- G2: verified `n ≥ 42`. (Should fall out of G3 work.)
-- G3: verified `n ≥ 58`, beating the published record of 57.
+  documented well enough that the claim is auditable. Secondary.
 
-Since G3 has no ceiling, this project is open-ended by design: each session should leave either
-a better record, a larger exhausted search space, or better tooling.
+Past 58 there is no ceiling, so the project stays open-ended: after the mandatory bar is cleared,
+each session should still leave either a longer AP, a better G1 endpoint, a larger exhausted
+search space, or faster tooling.
