@@ -315,43 +315,71 @@ int main(int argc, char **argv) {
         u64 d = K * D0;
         if (d / D0 != K) { fprintf(stderr, "K overflow at %" PRIu64 "\n", K); break; }
 
-        /* ---- choose tier B: smallest bad primes q > nterms with q ∤ d ---- */
-        u64 tbq[MAXTIERB], tbs[MAXTIERB], tbt[MAXTIERB], tbc[MAXTIERB];
+        /* ---- stage 1 components. Each is (modulus, start, step, count): the
+         * good residues of a mod m are start + i*step (mod m), i < count, so
+         * the CRT-admissible set is a product of arithmetic progressions and
+         * can be walked by additions alone.
+         *
+         *   m = 3 : a = 1        (Loeschian numbers are never 2 mod 3)
+         *   m = 2 : a = 1        (2 | d, so a must be odd)
+         *   m = 5 : a != 0       (5 | d; all four nonzero residues are good)
+         *   m = q : a = j*d for j = 1 .. q-n, for the smallest bad q > n
+         *           (then q | a+i*d only at i = q-j >= n, outside the window)
+         *
+         * Putting 2 and 5 here rather than in the tier-C bitmask is worth
+         * ~1.8x: candidates with a even or a = 0 mod 5 are then never
+         * constructed at all, instead of being built and then rejected. */
+        u64 cm[MAXTIERB + 4], cs[MAXTIERB + 4], ct[MAXTIERB + 4], cc[MAXTIERB + 4];
+        int nc = 0;
+        u64 MOD = 1;
+        #define ADDC(m_, s_, t_, c_) do { cm[nc] = (m_); cs[nc] = (s_); \
+            ct[nc] = (t_); cc[nc] = (c_); MOD *= (m_); nc++; } while (0)
+        ADDC(3, 1, 0, 1);
+        if (D0 % 2 == 0) ADDC(2, 1, 0, 1);
+        if (D0 % 5 == 0) ADDC(5, 1, 1, 4);
         int ntb = 0;
-        u64 MOD = 3;
-        for (u64 i = 0; i < n_sp && ntb < MAXTIERB; i++) {
+        u64 tbq[MAXTIERB];
+        for (u64 i = 0; i < n_sp && nc < MAXTIERB + 3; i++) {
             u64 q = sp[i];
             if (q <= nterms || q % 3 != 2 || d % q == 0) continue;
             if (MOD > (u64)4e18 / q) break;          /* keep MOD in u64 */
             if (MOD * q > modcap) break;             /* --modcap: unit size */
-            tbq[ntb] = q;
-            tbs[ntb] = (q - mulmod(nterms % q, d % q, q)) % q;   /* -n*d mod q */
-            tbt[ntb] = (q - d % q) % q;                          /* -d   mod q */
-            tbc[ntb] = q - nterms;
-            MOD *= q;
-            ntb++;
+            u64 dq = d % q;
+            tbq[ntb++] = q;
+            ADDC(q, dq, dq, q - nterms);             /* a = j*d, j = 1..q-n */
         }
+        #undef ADDC
         if (ntb < 4) { fprintf(stderr, "K=%" PRIu64 ": too few tier-B primes, "
                                "skipping\n", K); continue; }
 
         /* ---- CRT: idempotents, base residue R0, additive steps ---- */
-        /* component for 3 is the single residue 1 */
-        u64 mods[MAXTIERB + 1], ress[MAXTIERB + 1], steps[MAXTIERB + 1];
-        int nc = 0;
-        mods[nc] = 3; ress[nc] = 1; steps[nc] = 0; nc++;
-        for (int i = 0; i < ntb; i++) {
-            mods[nc] = tbq[i]; ress[nc] = tbs[i]; steps[nc] = tbt[i]; nc++;
-        }
-        u64 R0 = 0, sstep[MAXTIERB + 1], subcyc[MAXTIERB + 1];
+        u64 R0 = 0, sstep[MAXTIERB + 4], subcyc[MAXTIERB + 4];
         for (int i = 0; i < nc; i++) {
-            u64 mi = mods[i], co = MOD / mi;
+            u64 mi = cm[i], co = MOD / mi;
             u64 e = mulmod(co % MOD, inv_mod(co % mi, mi), MOD); /* idempotent */
-            R0 = (R0 + mulmod(ress[i], e, MOD)) % MOD;
-            sstep[i] = mulmod(steps[i], e, MOD);
+            R0 = (R0 + mulmod(cs[i], e, MOD)) % MOD;
+            sstep[i] = mulmod(ct[i], e, MOD);
         }
         /* one full cycle of component i, to be undone when it wraps */
-        subcyc[0] = 0;
-        for (int i = 1; i < nc; i++) subcyc[i] = mulmod(tbc[i - 1], sstep[i], MOD);
+        for (int i = 0; i < nc; i++) subcyc[i] = mulmod(cc[i], sstep[i], MOD);
+
+        /* Verify the CRT construction rather than trusting it: R0 must hit the
+         * first good residue of every component, and sstep[i] must move ONLY
+         * component i. A silent error here produces residues that are not
+         * admissible at all, which looks like "the search found nothing". */
+        for (int i = 0; i < nc; i++) {
+            if (R0 % cm[i] != cs[i] % cm[i]) {
+                fprintf(stderr, "FATAL CRT: R0=%" PRIu64 " mod %" PRIu64 " = %"
+                        PRIu64 ", want %" PRIu64 "\n",
+                        R0, cm[i], R0 % cm[i], cs[i] % cm[i]); return 2; }
+            for (int j = 0; j < nc; j++) {
+                u64 got = sstep[i] % cm[j], want2 = (i == j) ? ct[i] % cm[j] : 0;
+                if (got != want2) {
+                    fprintf(stderr, "FATAL CRT: sstep[%d] mod %" PRIu64 " = %"
+                            PRIu64 ", want %" PRIu64 "\n", i, cm[j], got, want2);
+                    return 2; }
+            }
+        }
 
         /* ---- tier C: bitmask primes ---- */
         u64 tcp[MAXTIERC]; bar tcb[MAXTIERC]; u64 *tcw[MAXTIERC]; int ntc = 0;
@@ -359,8 +387,8 @@ int main(int argc, char **argv) {
             u64 r = sp[i];
             if (r > b2) break;
             bool inB = false;
-            for (int t = 0; t < ntb; t++) if (tbq[t] == r) inB = true;
-            if (inB) continue;
+            for (int t = 0; t < nc; t++) if (cm[t] == r) inB = true;
+            if (inB) continue;                       /* already pinned in stage 1 */
             bool divD = (D0 % r == 0);
             if (!divD && (r % 3 != 2 || d % r == 0 || r <= nterms)) continue;
             tcp[ntc] = r; tcb[ntc] = bar_make(r);
@@ -410,11 +438,11 @@ int main(int argc, char **argv) {
             u64 nres = 0, nsurv = 0, nconf = 0;
             double ts = now_s();
             {   u64 tot = 1;
-                for (int i = 0; i < ntb; i++) tot *= tbc[i];
+                for (int i = 0; i < nc; i++) tot *= cc[i];
                 fprintf(stderr, "unit K=%" PRIu64 " shift=%" PRIu64 " MOD=%"
-                        PRIu64 " tierB=%d(", K, shift, MOD, ntb);
-                for (int i = 0; i < ntb; i++)
-                    fprintf(stderr, "%s%" PRIu64, i ? "," : "", tbq[i]);
+                        PRIu64 " stage1=%d(", K, shift, MOD, nc);
+                for (int i = 0; i < nc; i++)
+                    fprintf(stderr, "%s%" PRIu64, i ? "," : "", cm[i]);
                 fprintf(stderr, ") tierC=%d residues=%.4g range=%.4g\n",
                         ntc, (double)tot, (double)MOD * 64.0);
             }
@@ -506,13 +534,14 @@ int main(int argc, char **argv) {
                 int i = nc - 1;
                 bool exhausted = false;
                 for (;;) {
+                    while (i >= 0 && cc[i] <= 1) i--;   /* fixed components */
+                    if (i < 0) { exhausted = true; break; }
                     R += sstep[i]; if (R >= MOD) R -= MOD;
                     idx[i]++;
-                    if (idx[i] < tbc[i - 1]) break;
-                    R = (R + MOD - subcyc[i]) % MOD;   /* undo tbc[i-1] steps */
+                    if (idx[i] < cc[i]) break;
+                    R = (R + MOD - subcyc[i]) % MOD;    /* undo cc[i] steps */
                     idx[i] = 0;
                     i--;
-                    if (i < 1) { exhausted = true; break; }
                 }
                 if (exhausted) break;
             }
