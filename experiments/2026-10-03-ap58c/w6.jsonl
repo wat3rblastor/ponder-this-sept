@@ -1,0 +1,10 @@
+{"progress":true,"K":2401,"shift":0,"res":67108864,"surv":1787,"conf":1787,"best":19,"secs":19.7}
+{"progress":true,"K":2401,"shift":0,"res":134217728,"surv":3644,"conf":3644,"best":23,"secs":39.8}
+{"progress":true,"K":2401,"shift":0,"res":201326592,"surv":5440,"conf":5440,"best":23,"secs":59.4}
+{"progress":true,"K":2401,"shift":0,"res":268435456,"surv":7175,"conf":7175,"best":25,"secs":77.5}
+{"progress":true,"K":2401,"shift":0,"res":335544320,"surv":9009,"conf":9009,"best":26,"secs":95.9}
+{"progress":true,"K":2401,"shift":0,"res":402653184,"surv":10820,"conf":10820,"best":26,"secs":113.8}
+{"progress":true,"K":2401,"shift":0,"res":469762048,"surv":12614,"conf":12614,"best":26,"secs":131.8}
+{"progress":true,"K":2401,"shift":0,"res":536870912,"surv":14437,"conf":14437,"best":26,"secs":150.4}
+{"progress":true,"K":2401,"shift":0,"res":603979776,"surv":16271,"conf":16271,"best":26,"secs":169.9}
+{"K":2401,"shift":0,"MOD":1133661268029390,"res":622522150,"surv":16758,"conf":16758,"best":26,"secs":175.28,"covered":7.25543e+16}

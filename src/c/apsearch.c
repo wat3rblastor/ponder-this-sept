@@ -100,17 +100,39 @@ static bool is_prime_u64(u64 n) {
 
 static u64 gcd_u64(u64 a, u64 b) { while (b) { u64 t = a % b; a = b; b = t; } return a; }
 
+/* Pollard-Brent with a BATCHED gcd. The textbook Floyd version takes one gcd
+ * per iteration, which dominated everything: at ~1e4 iterations for a 1e16
+ * cofactor that is ~1 ms per factorization and it was costing this search
+ * roughly 240 of its 277 ns per residue. Accumulating the product of the
+ * differences mod n and taking a single gcd every 128 steps removes almost all
+ * of that. */
 static u64 pollard(u64 n) {
     if (!(n & 1)) return 2;
-    u64 c = 1;
-    for (;;) {
-        u64 x = 2, y = 2, d = 1;
-        do { x = (mulmod(x, x, n) + c) % n;
-             y = (mulmod(y, y, n) + c) % n; y = (mulmod(y, y, n) + c) % n;
-             d = gcd_u64(x > y ? x - y : y - x, n);
-        } while (d == 1);
-        if (d != n) return d;
-        c++;
+    for (u64 c = 1;; c++) {
+        u64 y = 2, m = 128, g = 1, r = 1, q = 1, x = 0, ys = 0;
+        while (g == 1) {
+            x = y;
+            for (u64 i = 0; i < r; i++) y = (mulmod(y, y, n) + c) % n;
+            for (u64 k = 0; k < r && g == 1; k += m) {
+                ys = y;
+                u64 lim = (m < r - k) ? m : r - k;
+                for (u64 i = 0; i < lim; i++) {
+                    y = (mulmod(y, y, n) + c) % n;
+                    q = mulmod(q, x > y ? x - y : y - x, n);
+                }
+                g = gcd_u64(q, n);
+            }
+            r *= 2;
+        }
+        if (g == n) {                     /* back off one step at a time */
+            g = 1;
+            y = ys;
+            while (g == 1) {
+                y = (mulmod(y, y, n) + c) % n;
+                g = gcd_u64(x > y ? x - y : y - x, n);
+            }
+        }
+        if (g != n) return g;
     }
 }
 
@@ -193,13 +215,25 @@ static bool is_loeschian(u64 t) {
 
 /* -------------------------------------------------------- Barrett modulo --- */
 
-/* Plain hardware modulo. A 64-bit Barrett reduction was tried here first and
- * was both wrong (the magic truncated a 128-bit quotient to 64 bits) and
- * pointless: on Apple silicon the scalar integer divider sustains roughly one
- * 64-bit udiv per 2 cycles, and Lemire's fastmod measured only ~3% faster. */
-typedef struct { u64 m; } bar;
-static bar bar_make(u64 m) { bar b; b.m = m; return b; }
-static inline u64 bar_mod(u64 x, bar b) { return x % b.m; }
+/* Modulo by a small prime, done in 32 bits.
+ *
+ * R < MOD < 2^51, so split R into three 17-bit limbs and fold with the
+ * precomputed constants c1 = 2^17 mod m, c2 = 2^34 mod m:
+ *     R mod m = (l0 + l1*c1 + l2*c2) mod m
+ * The fold is at most 2^17 + 2*2^17*m < 2^32 for m <= 2000, so the division is
+ * a 32-bit udiv rather than a 64-bit one. (A full 64-bit Barrett was tried
+ * first and was wrong -- its magic truncated a 128-bit quotient to 64 bits.) */
+typedef struct { u32 m, c1, c2; } bar;
+static bar bar_make(u64 m) {
+    bar b; b.m = (u32)m;
+    b.c1 = (u32)(((u64)1 << 17) % m);
+    b.c2 = (u32)(((u64)1 << 34) % m);
+    return b;
+}
+static inline u32 bar_mod(u64 x, bar b) {
+    u32 l0 = (u32)(x & 0x1FFFF), l1 = (u32)((x >> 17) & 0x1FFFF), l2 = (u32)(x >> 34);
+    return (l0 + l1 * b.c1 + l2 * b.c2) % b.m;
+}
 
 /* ------------------------------------------------------------------ main --- */
 
@@ -219,7 +253,7 @@ int main(int argc, char **argv) {
     u64 modcap = 6000000000000000ULL;   /* cap on MOD = 3*prod(tier B) */
     int report = 50;
     const char *out = NULL;
-    bool selftest = false;
+    bool selftest = false, isl_mode = false;
 
     for (int i = 1; i < argc; i++) {
         const char *k = argv[i];
@@ -234,6 +268,7 @@ int main(int argc, char **argv) {
         else if (!strcmp(k, "--D0")) D0 = strtoull(NEXT(), NULL, 10);
         else if (!strcmp(k, "--modcap")) modcap = strtoull(NEXT(), NULL, 10);
         else if (!strcmp(k, "--selftest")) selftest = true;
+        else if (!strcmp(k, "--isl")) isl_mode = true;
         else usage(argv[0]);
         #undef NEXT
     }
@@ -242,6 +277,12 @@ int main(int argc, char **argv) {
 
     signal(SIGINT, on_signal); signal(SIGTERM, on_signal);
     build_small_primes(10000);
+
+    if (isl_mode) {          /* read decimal values on stdin, print verdicts */
+        u64 v;
+        while (scanf("%" SCNu64, &v) == 1) printf("%" PRIu64 " %d\n", v, (int)is_loeschian(v));
+        return 0;
+    }
 
     if (selftest) {
         /* 1) known prefix of A003136 */
@@ -391,10 +432,32 @@ int main(int argc, char **argv) {
             if (inB) continue;                       /* already pinned in stage 1 */
             bool divD = (D0 % r == 0);
             if (!divD && (r % 3 != 2 || d % r == 0 || r <= nterms)) continue;
-            tcp[ntc] = r; tcb[ntc] = bar_make(r);
+            tcp[ntc] = r;
             tcw[ntc] = malloc(r * sizeof(u64));
             ntc++;
         }
+
+        /* Order tier C by how much of the candidate space each prime kills, so
+         * the AND chain hits zero in a handful of steps. A bad prime q kills
+         * nterms/q of residues; a prime p | D0 kills only 1/p. Ascending prime
+         * order would put the feeble ones (11, 17, 23, ...) first and plough
+         * through the whole chain almost every time. */
+        for (int i = 0; i < ntc; i++) {
+            int bestj = i;
+            double bk = -1;
+            for (int j = i; j < ntc; j++) {
+                double kill = (D0 % tcp[j] == 0) ? 1.0 / (double)tcp[j]
+                                                 : (double)nterms / (double)tcp[j];
+                if (kill > bk) { bk = kill; bestj = j; }
+            }
+            u64 t1 = tcp[i]; tcp[i] = tcp[bestj]; tcp[bestj] = t1;
+            u64 *t2 = tcw[i]; tcw[i] = tcw[bestj]; tcw[bestj] = t2;
+        }
+        for (int i = 0; i < ntc; i++) tcb[i] = bar_make(tcp[i]);
+        if (K == kmin)
+            fprintf(stderr, "tierC order: %" PRIu64 " %" PRIu64 " %" PRIu64
+                    " %" PRIu64 " %" PRIu64 " ... (%d primes)\n",
+                    tcp[0], tcp[1], tcp[2], tcp[3], tcp[4], ntc);
 
         for (u64 shift = 0; shift < shifts && !stop_requested; shift++) {
             u64 boff = shift * 64;

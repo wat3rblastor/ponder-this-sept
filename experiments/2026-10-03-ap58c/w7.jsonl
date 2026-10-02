@@ -1,0 +1,10 @@
+{"progress":true,"K":2801,"shift":0,"res":67108864,"surv":1829,"conf":1829,"best":21,"secs":19.7}
+{"progress":true,"K":2801,"shift":0,"res":134217728,"surv":3633,"conf":3633,"best":21,"secs":39.5}
+{"progress":true,"K":2801,"shift":0,"res":201326592,"surv":5443,"conf":5443,"best":25,"secs":59.5}
+{"progress":true,"K":2801,"shift":0,"res":268435456,"surv":7257,"conf":7256,"best":30,"secs":78.1}
+{"progress":true,"K":2801,"shift":0,"res":335544320,"surv":9055,"conf":9053,"best":30,"secs":96.9}
+{"progress":true,"K":2801,"shift":0,"res":402653184,"surv":10848,"conf":10846,"best":30,"secs":114.8}
+{"progress":true,"K":2801,"shift":0,"res":469762048,"surv":12611,"conf":12608,"best":30,"secs":132.7}
+{"progress":true,"K":2801,"shift":0,"res":536870912,"surv":14393,"conf":14389,"best":30,"secs":151.6}
+{"progress":true,"K":2801,"shift":0,"res":603979776,"surv":16130,"conf":16126,"best":30,"secs":170.7}
+{"K":2801,"shift":0,"MOD":1133661268029390,"res":619366778,"surv":16531,"conf":16527,"best":30,"secs":175.28,"covered":7.25543e+16}
