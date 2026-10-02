@@ -1,0 +1,28 @@
+{
+  "g3_longest": {
+    "a": 73415383,
+    "d": 37418700,
+    "n": 36,
+    "last": 1383069883,
+    "verified": true,
+    "verifier": "src/verify.py 73415383 37418700 36 --maximal",
+    "maximal_both_ends": true,
+    "method": "experiments/2026-10-02-calibration (flat sieve scan, d = 3741870*10)",
+    "date": "2026-10-02"
+  },
+  "g1_min_last_term_35": {
+    "a": 73415383,
+    "d": 37418700,
+    "n": 35,
+    "last": 1345651183,
+    "verified": true,
+    "note": "prefix of the n=36 record; NOT optimized for a minimal last term -- G1 is explicitly deferred until G3 is secured (GOAL.md 1, 4)",
+    "method": "experiments/2026-10-02-calibration",
+    "date": "2026-10-02"
+  },
+  "g2_at_least_42": {
+    "achieved": false,
+    "note": "bonus (*) waypoint, not yet reached"
+  },
+  "history": []
+}

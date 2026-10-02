@@ -97,10 +97,18 @@ Consequences that shape the entire search:
    every AP has `3 ∤ a`, hence **`a ≡ 1 (mod 3)` and every term `≡ 1 (mod 3)`**. (If `3 | a`
    and `3 | d` then `9 | d` and `(a/3, d/3)` is an equally long AP, so reduce.) Measured: with
    `3 ∤ d` the longest run found anywhere is **2**.
-6. **Every bad prime `p < n` must divide `d`** (not just `p ≤ n/2` — see §2b). This is what
-   fixes the minimal step. For `n = 58`:
-   `d ≡ 0 mod 3·2·5·11·17·23·29·41·47·53 = 382,160,924,970`, so the last term is
-   `≥ 57·d ≈ 2.18e13`. Nothing smaller can carry 58 terms.
+6. **Bad primes below `n` in `d`: forced for `p ≤ n/2`, merely very expensive above it.**
+   `p | d` is a *theorem* only when `2p ≤ n` (§2b), i.e. `2,5,11,17,23,29 | d` for `n = 58`
+   — this is the real hard constraint, and with the forced `3` it gives
+   `d ≡ 0 mod 3,741,870`. For `n/2 < p < n` (41, 47, 53 at `n = 58`) omitting `p` from `d` is
+   *legal*: one or two terms are divisible by `p` and each such term needs `v_p ≥ 2`, which
+   costs a factor `~1/(p+1)`. **Do not state this as a necessary condition** — a verified
+   25-term AP exists with `d = 990 = 2·3²·5·11`, omitting both 17 and 23.
+   Taking all of 41, 47, 53 into `d` gives the working step base
+   `D0 = 3·2·5·11·17·23·29·41·47·53 = 382,160,924,970` (last term `≥ 57·D0 ≈ 2.18e13`).
+   Measured trade: including them vs. paying the `1/(p+1)` is close to neutral, because a
+   larger `d` inflates every term and the per-term density falls as `1/√(log T)`. Treat the
+   choice as a search dimension, not a constraint.
 7. **Chinese remainder structure:** choosing `d = 3^e · ∏_{p ≡ 2 (3), p ≤ B} p · (stuff)` and then
    searching `a` over residues is the standard productive shape. Larger `B` buys length but
    inflates `a + 34d`, so **G1 and G3 pull in opposite directions** — expect different
@@ -145,9 +153,11 @@ assertions or unit tests, not as comments.
   probability — three such primes (41, 47, 53 at `n = 58`) cost `~1/10^5` between them.
   Measured (experiments/2026-10-02-calibration): with `29 ∤ d`, run counts fall off a cliff
   immediately past `k = 29` (per-term survival drops 0.55 → 0.36 and hits zero at `k = 32`),
-  while with `29 | d` the decay stays a clean 0.53/term. **So treat `p | d` as mandatory for
-  every bad `p < n`.** Bad primes `p >= n` are different and much cheaper: at most one term is
-  divisible, and `a` can be chosen mod `p` so that the hit index lands outside `[0, n-1]`.
+  while with `29 | d` the decay stays a clean 0.53/term. So treat `p | d` as the strongly
+  preferred choice for every bad `p < n` — but **it is a cost heuristic, not a necessary
+  condition**, and saying otherwise wrongly shrinks the space (see §2-6). Bad primes `p >= n`
+  are different and much cheaper: at most one term is divisible, and `a` can be chosen mod `p`
+  so that the hit index lands outside `[0, n-1]`.
 - **Maximality.** When reporting length `n`, confirm `a - d` (if `≥ 0`) and `a + nd` are *not*
   Loeschian, or say explicitly that the run may extend. Otherwise the record understates itself
   and later sessions re-find the same thing.
