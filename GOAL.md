@@ -9,6 +9,31 @@ what to do next. Keep it current; it outranks memory and chat history.
 
 ---
 
+## 0. Hard deadline and method constraints (added 2026-10-02 17:27 CDT)
+
+- **Deadline: 2026-10-03 05:27 CDT (12 hours from 2026-10-02 17:27 CDT).** The `n >= 58`
+  result must be verified, recorded in `records.json`, and written up in `ANSWER.md` before
+  then. Budget backwards from the deadline: reserve the last 45 minutes for verification,
+  independent cross-check, `ANSWER.md`, and commits. If the deadline is close and no `n >= 58`
+  exists, record the best verified `n` reached and say plainly that the bar was not cleared —
+  do not keep running past the deadline.
+- **No blind brute force.** Undirected enumeration of `(a, d)` is forbidden as a strategy.
+  Every campaign must be justified in writing by a structural argument that prunes the space
+  first (see §2 and §2b) — which bad primes are *forced* into `d`, which residues of `a` are
+  admissible, and why the remaining space is small enough to be worth the CPU. A search that
+  cannot state its pruning argument does not get launched. Searching a space that theory has
+  already cut down to size is not brute force; sweeping `(a, d)` and hoping is.
+- **Mathematical reconnaissance runs in parallel with search, not before it.** Reaching
+  `n = 58` on this budget plausibly needs a construction we do not currently have, so
+  literature/web research for better ideas is a first-class, continuously-running activity.
+  Keep research agents and search agents in flight at the same time (see §6): research agents
+  hunt for constructions (analogous records for sums of two squares, admissible-tuple /
+  prime-AP techniques, anything by Hugo Pfoertner, Green–Tao-style explicit constructions);
+  search agents grind the disjoint families the current theory says are best. Fold any idea
+  that survives scrutiny straight into the live campaign.
+
+---
+
 ## 1. The problem (verbatim essentials)
 
 A **Loeschian number** is an integer of the form `x² + x·y + y²` with `x, y ∈ ℤ`.
@@ -65,7 +90,18 @@ Consequences that shape the entire search:
    validity. So useful normal form: factor out square common factors and search primitive APs.
 4. **Loeschian numbers are multiplicatively closed** (norms multiply), density `~C·N/√(log N)` —
    high enough for Green–Tao-style existence, which is why long APs exist at all.
-5. **Chinese remainder structure:** choosing `d = 3^e · ∏_{p ≡ 2 (3), p ≤ B} p · (stuff)` and then
+5. **Loeschian numbers are never `2 (mod 3)`** — and this is the single most constraining fact
+   in the problem. For `n` coprime to 3, `n = ∏ p_i^{e_i}` gives
+   `n ≡ (-1)^(Σ_{p_i ≡ 2 (3)} e_i) (mod 3)`, so Loeschian (all those `e_i` even) forces
+   `n ≡ 1 (mod 3)`. Consequences: `3 | d` is forced for any `n ≥ 3`, and the primitive form of
+   every AP has `3 ∤ a`, hence **`a ≡ 1 (mod 3)` and every term `≡ 1 (mod 3)`**. (If `3 | a`
+   and `3 | d` then `9 | d` and `(a/3, d/3)` is an equally long AP, so reduce.) Measured: with
+   `3 ∤ d` the longest run found anywhere is **2**.
+6. **Every bad prime `p < n` must divide `d`** (not just `p ≤ n/2` — see §2b). This is what
+   fixes the minimal step. For `n = 58`:
+   `d ≡ 0 mod 3·2·5·11·17·23·29·41·47·53 = 382,160,924,970`, so the last term is
+   `≥ 57·d ≈ 2.18e13`. Nothing smaller can carry 58 terms.
+7. **Chinese remainder structure:** choosing `d = 3^e · ∏_{p ≡ 2 (3), p ≤ B} p · (stuff)` and then
    searching `a` over residues is the standard productive shape. Larger `B` buys length but
    inflates `a + 34d`, so **G1 and G3 pull in opposite directions** — expect different
    `d`-families for each.
@@ -102,6 +138,16 @@ assertions or unit tests, not as comments.
   enough of the lattice. Only use enumeration as a cross-check on the prime-factorization test.
 - **`d ≥ 1`, strictly increasing, all terms `≥ 0`.** A search that allows `d = 0` finds an
   infinitely long "progression" of one repeated Loeschian number. Assert `d ≥ 1`.
+- **The bad-prime cliff is at `p < n`, not `p <= n/2`.** The easy argument ("two terms
+  divisible by `p` both need `p^2 |`, their difference is `j·p·d` with `j < p`, so `p | d`")
+  only proves `p | d` is *forced* for `n >= 2p`. But for `p < n < 2p` there is still at least
+  one term divisible by `p`, and it needs `v_p >= 2`, which costs a factor `~1/(p+1)` in
+  probability — three such primes (41, 47, 53 at `n = 58`) cost `~1/10^5` between them.
+  Measured (experiments/2026-10-02-calibration): with `29 ∤ d`, run counts fall off a cliff
+  immediately past `k = 29` (per-term survival drops 0.55 → 0.36 and hits zero at `k = 32`),
+  while with `29 | d` the decay stays a clean 0.53/term. **So treat `p | d` as mandatory for
+  every bad `p < n`.** Bad primes `p >= n` are different and much cheaper: at most one term is
+  divisible, and `a` can be chosen mod `p` so that the hit index lands outside `[0, n-1]`.
 - **Maximality.** When reporting length `n`, confirm `a - d` (if `≥ 0`) and `a + nd` are *not*
   Loeschian, or say explicitly that the run may extend. Otherwise the record understates itself
   and later sessions re-find the same thing.
@@ -280,6 +326,16 @@ exactly two things here:
    families is a real N× speedup. This is the main use.
 2. **Independent cross-checks.** A second agent re-deriving a record with its own implementation
    catches the bug that would otherwise make us claim a wrong answer.
+
+3. **Mathematical / literature reconnaissance, running concurrently with search** (§0). At
+   least one research agent should be in flight whenever a search campaign is running, because
+   the search alone may not close the gap to `n = 58` inside the deadline. Research agents own
+   questions, not `(a, d)` ranges: known records for APs in other norm-form sets (sums of two
+   squares especially), admissible-tuple and prime-AP search engineering, Green–Tao-style
+   explicit constructions, anything by Hugo Pfoertner, and any paper on APs in multiplicatively
+   defined sets. They must return concrete, actionable constructions with citations — or an
+   explicit "nothing usable found", which is also a result. A research agent must never be
+   trusted on a numeric claim without our own verifier confirming it.
 
 Do **not** spawn a subagent for: a single sweep the orchestrator could run inline, reading one
 file, "exploring" without an owned partition, or anything whose result you'd have to redo
