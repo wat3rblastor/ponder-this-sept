@@ -76,7 +76,7 @@ sieving out `n` with odd `v_p` for some bad `p` (or directly enumerate `x² + xy
 
 ---
 
-## 2c. Gotchas and invariants (read before writing any search code)
+## 2b. Gotchas and invariants (read before writing any search code)
 
 Every one of these has a plausible wrong version that silently produces garbage. Encode them as
 assertions or unit tests, not as comments.
@@ -110,7 +110,7 @@ assertions or unit tests, not as comments.
 
 ---
 
-## 2b. Solve this as efficiently as possible
+## 2c. Solve this as efficiently as possible
 
 Efficiency is a first-class requirement, not a nicety. The search space is unbounded; the only
 way to reach `n ≥ 58` is to spend compute where it pays.
@@ -189,7 +189,7 @@ Rules:
 ## 3c. Checkpointing (required for any run over ~5 minutes)
 
 Long searches must be resumable, otherwise an interruption loses hours and the
-"never re-search covered ground" rule in §2b cannot be honored.
+"never re-search covered ground" rule in §2c cannot be honored.
 
 - Every campaign script writes `experiments/<date>-<slug>/checkpoint.json` at least every 60
   seconds: the search-space cursor (e.g. last `d` completed, `a`-range position), best-so-far
