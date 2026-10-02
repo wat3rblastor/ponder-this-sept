@@ -75,3 +75,7 @@
 {"progress":true,"K":2,"shift":0,"res":335544320,"surv":9007,"conf":9007,"best":34,"secs":57.2}
 {"progress":true,"K":2,"shift":0,"res":402653184,"surv":10846,"conf":10846,"best":34,"secs":68.5}
 {"progress":true,"K":2,"shift":0,"res":469762048,"surv":12661,"conf":12661,"best":34,"secs":80.3}
+{"progress":true,"K":2,"shift":0,"res":536870912,"surv":14421,"conf":14421,"best":34,"secs":92.1}
+{"progress":true,"K":2,"shift":0,"res":603979776,"surv":16194,"conf":16194,"best":34,"secs":103.6}
+{"progress":true,"K":2,"shift":0,"res":671088640,"surv":17985,"conf":17985,"best":34,"secs":115.1}
+{"K":2,"shift":0,"MOD":1133661268029390,"res":681038949,"surv":18251,"conf":18251,"best":34,"secs":116.88,"covered":1.45109e+17}

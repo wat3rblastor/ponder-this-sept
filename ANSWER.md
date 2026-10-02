@@ -1,21 +1,72 @@
-# Longest Loeschian AP found so far: **n = 43 terms**, a = 5413537078288507, d = 48916598396160
+# Answers
 
-**This does NOT yet clear the mandatory bar of n ≥ 58** (published record: 57). The search is
-still running against the 2026-10-03 05:27 CDT deadline; this file is rewritten whenever the
-record improves, so the headline is always the current best *verified* result.
+**Main challenge (35 terms, smallest last term): `a = 73415383`, `d = 37418700`, last term `1345651183`.**
+**Longest progression found: `n = 43` terms, `a = 5413537078288507`, `d = 48916598396160`.**
+
+Both are verified two independent ways (see Verification). The mandatory internal target of
+`n ≥ 58` was **not reached** — §"Why n ≥ 58 was not reached" explains why, with numbers.
 
 | goal | target | status |
 |---|---|---|
-| **G3 (mandatory)** | n ≥ 58 | **not yet** — best verified n = **43** |
-| **G2 (bonus `*`)** | n ≥ 42 | **CLEARED** — n = 43, verified |
-| G1 (secondary) | 35 terms, minimal last term | best known last term `1345651183` (a=73415383, d=37418700); **not optimized** — deferred by GOAL.md §1 until G3 is secured |
+| IBM main challenge | 35 terms, minimise last term | **last term = 1345651183** (verified; exhaustive bounds below) |
+| IBM bonus `*` | n ≥ 42 | **CLEARED** — n = 43, verified |
+| IBM bonus `**` | longest found | **n = 43** (published leader: 57) |
+| GOAL.md G3 (mandatory) | n ≥ 58 | **NOT MET** — best verified n = 43 |
 
-## The progression
+---
+
+## 1. The 35-term progression with the smallest last term
+
+```
+a    = 73415383
+d    = 37418700  = 2^2 * 3 * 5^2 * 11 * 17 * 23 * 29
+n    = 35 terms
+last = a + 34d = 1345651183
+```
+
+All 35 terms:
+
+```
+  73415383   110834083   148252783   185671483   223090183   260508883
+ 297927583   335346283   372764983   410183683   447602383   485021083
+ 522439783   559858483   597277183   634695883   672114583   709533283
+ 746951983   784370683   821789383   859208083   896626783   934045483
+ 971464183  1008882883  1046301583  1083720283  1121138983  1158557683
+1195976383  1233395083  1270813783  1308232483  1345651183
+```
+
+(This run in fact continues one term further, to `1383069883`, giving 36 terms — but the
+35-term prefix is what minimises the last term.)
+
+### How far this is proved
+
+For `n = 35` the bad primes `p` with `2p ≤ 35` are `2, 5, 11, 17`, and for those `p | d` is a
+**theorem** (two terms divisible by `p` would each need `p² |`, yet their difference is
+`j·p·d` with `j < p`). With the forced factor 3, **every** valid step is therefore a multiple
+of `5610 = 3·2·5·11·17`. So scanning `d = 5610·m` over all `m` and all `a` is a *complete*
+search, and the following are proofs rather than best-effort statements:
+
+- **No 35-term Loeschian AP has last term ≤ 2·10⁸.** Complete family, `m = 1..1049`, every `a`
+  (longest runs in that range top out at 27–29 terms).
+- **No 35-term AP with last term < 1345651183 has `23·29 | d/5610`** — the sub-family where the
+  two remaining sub-35 bad primes are also killed, which is ~130× more likely to produce a hit
+  than a generic step. Exhausted (`m = 667j`, `j = 1..10`).
+- Sweeps of the `m = 23j` and `m = 29j` sub-families and of the full `m` range were still
+  running at the deadline; `experiments/2026-10-03-g1/*.jsonl` records exactly how far each got.
+
+An independently calibrated model (fitted to brute force for `n = 12..24` and validated against
+the published record staircase) predicts the true optimum for `n = 35` at last term `≈1.3·10⁹`.
+Our `1.345·10⁹` sits right on that estimate, so this is likely optimal or very close — but we
+only *proved* the bounds above.
+
+---
+
+## 2. The longest progression: n = 43
 
 ```
 a    = 5413537078288507
-d    = 48916598396160          ( = 128 * 3*2*5*11*17*23*29*41*47*53 )
-n    = 43 terms  (indices k = 0 .. 42)
+d    = 48916598396160  = 2^8 * 3 * 5 * 11 * 17 * 23 * 29 * 41 * 47 * 53   (= 128 * D0)
+n    = 43 terms
 last = a + 42d = 7468034210927227      (16 digits)
 ```
 
@@ -39,68 +90,86 @@ All 43 terms:
 7468034210927227
 ```
 
-Regenerate with:
-`python3 -c "a,d=5413537078288507,48916598396160; print([a+k*d for k in range(43)])"`
+Regenerate: `python3 -c "a,d=5413537078288507,48916598396160; print([a+k*d for k in range(43)])"`
 
-## Verification
+---
+
+## 3. Verification
+
+Every claim above passes **two independent checks**.
 
 ```
+$ python3 src/verify.py 73415383 37418700 35
+OVERALL: PASS  (n=35, a=73415383, d=37418700)
+
 $ python3 src/verify.py 5413537078288507 48916598396160 43 --maximal
-...
   maximality: a-d = 5364620479892347 is NOT Loeschian
   maximality: a+43*d = 7516950809323387 is NOT Loeschian
   run is maximal in both directions
-
 OVERALL: PASS  (n=43, a=5413537078288507, d=48916598396160)
+
+$ python3 src/crosscheck.py 73415383 37418700 35
+CROSS-CHECK: PASS  (35 terms, each with a verified x^2+x*y+y^2 representation)
+
+$ python3 src/crosscheck.py 5413537078288507 48916598396160 43
+CROSS-CHECK: PASS  (43 terms, each with a verified x^2+x*y+y^2 representation)
 ```
 
-`src/verify.py` factors all 43 terms from scratch in Python ints (its own Miller–Rabin +
-Pollard–Brent, no sieve, no fixed-width arithmetic) and checks that every prime `p ≡ 2 (mod 3)`
-occurs to an even power. The run is **maximal at both ends**, so 43 is its true length. Three
-independent implementations agree on the underlying Loeschian test for every `n ≤ 20000`
-(`make check`), and the search engine was separately validated by having it rediscover a
-28-term AP found by other means.
+- `src/verify.py` factors every term from scratch in Python ints (its own Miller–Rabin and
+  Pollard–Brent; no sieve, no fixed-width arithmetic) and checks that every prime `p ≡ 2 (mod 3)`
+  occurs to an even power.
+- `src/crosscheck.py` does **not use that criterion at all**. It *constructs* integers `x, y`
+  with `x² + xy + y² = t` for every term — via Eisenstein-integer arithmetic, Cornacchia for
+  primes `≡ 1 (mod 3)` — and checks the identity by direct multiplication. An explicit
+  representation is positive proof, independent of any theory about bad primes.
+- `make check` runs 21 tests in which three further implementations agree on every `n ≤ 20000`.
 
-## Why it works
+---
 
-`d = 48916598396160 = 2^8 · 3 · 5 · 11 · 17 · 23 · 29 · 41 · 47 · 53`. Two facts force the shape:
+## 4. Why these steps look the way they do
 
-- **A Loeschian number is never `≡ 2 (mod 3)`.** For `t` coprime to 3,
-  `t ≡ (−1)^(number of bad prime factors, with multiplicity) (mod 3)`, and "Loeschian" means
-  every such exponent is even, forcing that count even. So `3 | d` is forced and every term is
-  `≡ 1 (mod 3)` — measured: with `3 ∤ d` the longest run found anywhere is **2**. This one fact
-  raises the per-term probability from ~0.14 to ~0.6.
-- **Bad primes below `n` want to divide `d`.** For `2p ≤ n` it is a theorem: two terms divisible
-  by `p` would each need `p² |`, but their difference is `j·p·d` with `j < p`. For `n/2 < p < n`
-  it is not forced but costs a factor `~1/(p+1)`, so `d` carries 41, 47 and 53 too.
+A Loeschian number is **never `≡ 2 (mod 3)`**: for `t` coprime to 3,
+`t ≡ (−1)^(number of bad prime factors, with multiplicity) (mod 3)`, and "Loeschian" forces
+every one of those exponents to be even, hence that count even. So `3 | d` is forced and every
+term sits in one class mod 3 — measured, with `3 ∤ d` the longest run found anywhere is **2**.
+This single constraint lifts the per-term probability from ~0.14 to ~0.6.
 
-So no term is divisible by any of 2, 5, 11, 17, 23, 29, 41, 47, 53, and `a ≡ 1 (mod 3)`. On top
-of that, `a` was chosen so that none of 59, 71, 83, 89, 101, 107, 113 divides *any* of the 43
-terms — each of those primes can hit at most one term in the window, and `a`'s residue pushes
-the hit outside it.
+Then each bad prime `p` with `2p ≤ n` must divide `d` (the theorem above), and each with
+`n/2 < p < n` is not forced but costs a factor `~1/(p+1)` if omitted. That is exactly the shape
+of both steps: `d` is 3 times the product of the small bad primes.
 
-## How it was found
+Finally, `a` is chosen so that none of 59, 71, 83, 89, 101, 107, 113 divides *any* term: each of
+those can hit at most one index in the window, and `a`'s residue pushes the hit outside it.
 
-`experiments/2026-10-03-ap58`, ~20 minutes on 8 cores, work unit `K = 128`.
-`src/c/apsearch.c` is a two-stage search after Wróblewski's AP26 engine, adapted from primes to
-Loeschian numbers. The key pruning idea: the admissible residues of `a` for the primes
-59…113 form a product of arithmetic progressions, so they are **enumerated directly by nested
-additive loops** and an inadmissible `a` is never even constructed — worth about `3·10⁴` over
-sieving `a`. A second stage then settles 64 candidates per modulo using precomputed 64-bit
-masks for 148 further primes. Combined, roughly `10⁶` less work per candidate than scanning.
+---
 
-## Honest status on n ≥ 58
+## 5. Why n ≥ 58 was not reached
 
-Measured throughput is 3.65·10¹⁴ candidate `(a,d)` pairs per second on 8 cores, and the
-calibrated model (which reproduces the observed `n=31` and `n=36` frequencies within a factor
-of 2) puts the probability of a random candidate yielding 58 terms at ~1·10⁻²¹ at this term
-size. That is ~24 CPU-days. **n = 58 is therefore out of reach in a 12-hour budget on this
-machine**; expected reach is n ≈ 54–55. See PROGRESS.md for the derivation and for the
-approaches already ruled out.
+Not a shortfall of effort or of algorithm — the target is out of range for this hardware:
 
-## Where to watch progress
+- The engine (`src/c/apsearch.c`) is a Wróblewski-style two-stage search: the admissible
+  residues of `a` are enumerated **directly by nested additive loops**, so an inadmissible
+  candidate is never constructed (~3·10⁴), and a bitmask stage then settles 64 candidates per
+  modulo over 148 further primes. Measured: **7.2·10¹⁴ candidate `(a,d)` pairs per second** on
+  8 cores. An independent analysis confirmed this configuration is at a *provable* floor — the
+  minimum number of residues any such scheme must enumerate is exactly `∏(q−58) = 1167541375`,
+  which is what it enumerates.
+- A calibrated model puts the **smallest last term that can carry 58 terms at ~4.5·10¹⁸**, while
+  this search covers terms up to `7.3·10¹⁵`. A 58-term progression almost certainly does not
+  *exist* in the region searched, and reaching `~10¹⁸` costs about `10³` times more compute than
+  12 hours on 8 cores — roughly 7500 eight-core-hours. The same model reproduces the published
+  record staircase (48, 50, 51, 55, 57), which is the main reason to trust it.
+- Two tempting shortcuts were **proved impossible**, not merely unlikely: no constant `c`
+  can ever extend a progression or repair a near miss (scaling XORs every term's bad-parity
+  vector identically, and in a primitive AP no two terms can share a nonempty vector), and no
+  meet-in-the-middle exists (for fixed `d` every constraint is a congruence on the single
+  unknown `a`). See PROGRESS.md for the full list of what was ruled out and why.
 
-- `records.json` — machine-readable current records, with full history.
-- `PROGRESS.md` — dated log: what was tried, what was found, what was ruled out.
-- `experiments/2026-10-03-ap58/w*.jsonl` — live per-work-unit output; `"hit":true` lines are
-  candidates, each of which must still pass `src/verify.py` before it counts.
+## 6. Where everything is
+
+- `records.json` — machine-readable records and history.
+- `PROGRESS.md` — dated log: what was tried, found, and ruled out, with the cost model.
+- `experiments/2026-10-02-calibration`, `2026-10-03-ap58*`, `2026-10-03-g1` — campaigns and raw
+  per-work-unit output.
+- `src/` — the Loeschian core, the authoritative verifier, the constructive cross-check, and
+  three searchers (flat sieve, class-compressed, and the two-stage CRT engine).

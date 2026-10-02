@@ -1,0 +1,9 @@
+sieving Loeschian numbers up to N=400000000 (47.7 MiB bitmap)...
+sieve selftest: OK
+sieve built in 3.6s
+*** new best n=31  a=199373287  d=3741870
+m=1 d=3741870 best_n=31 a=199373287 (2.8s)
+m=2 d=7483740 best_n=31 a=10435699 (2.5s)
+m=3 d=11225610 best_n=31 a=60193603 (2.5s)
+G1 BEST last=0 a=0 d=0 (n=35)
+BEST n=31 a=199373287 d=3741870  (total 11.4s)

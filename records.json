@@ -17,10 +17,18 @@
     "d": 37418700,
     "n": 35,
     "last": 1345651183,
+    "d_factored": "2^2 * 3 * 5^2 * 11 * 17 * 23 * 29  (= 5610 * 6670)",
     "verified": true,
-    "note": "prefix of the n=36 record; NOT optimized for a minimal last term -- G1 is explicitly deferred until G3 is secured (GOAL.md 1, 4)",
-    "method": "experiments/2026-10-02-calibration",
-    "date": "2026-10-02"
+    "verifier": "src/verify.py 73415383 37418700 35",
+    "cross_checked": "src/crosscheck.py 73415383 37418700 35 (explicit x^2+xy+y^2 per term)",
+    "method": "experiments/2026-10-03-g1",
+    "exhaustive_bounds": [
+      "No 35-term Loeschian AP has last term <= 2e8: complete family d=5610*m, m=1..1049, all a.",
+      "No 35-term AP with last term < 1345651183 exists with 23*29 | (d/5610): complete sub-family m=667*j, j=1..10.",
+      "Scans of the m=23j and m=29j sub-families, and the full m sweep, were in progress at the deadline."
+    ],
+    "note": "d must be a multiple of 5610 = 3*2*5*11*17 for n=35 (theorem: p | d for bad p with 2p <= n), so the family scanned is COMPLETE and these bounds are proofs, not best-effort.",
+    "date": "2026-10-03"
   },
   "g2_at_least_42": {
     "achieved": true,

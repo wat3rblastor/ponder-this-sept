@@ -81,3 +81,8 @@ unit K=401 shift=0 MOD=1133661268029390 stage1=10(3,2,5,59,71,83,89,101,107,113)
 K=401 shift=0 MOD=1133661268029390 tierB=7 tierC=144 R=4670165500 surv=145618 conf=145251 best=31 857.5s (8.46e+13 raw/s)
 unit K=402 shift=0 MOD=1133661268029390 stage1=10(3,2,5,59,71,83,89,101,107,113) tierC=145 residues=4.67e+09 range=7.255e+16
   .. K=402 shift=0 R=6.711e+07 surv=1775 conf=1775 best=31 11s (5.95e+06 res/s)
+  .. K=402 shift=0 R=1.342e+08 surv=3544 conf=3544 best=31 23s (5.88e+06 res/s)
+  .. K=402 shift=0 R=2.013e+08 surv=5325 conf=5325 best=31 35s (5.8e+06 res/s)
+  .. K=402 shift=0 R=2.684e+08 surv=7104 conf=7104 best=31 46s (5.82e+06 res/s)
+K=402 shift=0 MOD=1133661268029390 tierB=7 tierC=145 R=333184842 surv=8860 conf=8860 best=31 57.5s (1.26e+15 raw/s)
+BEST n=31 a=67065472000722343 d=153246530912970  units=2 covered=1.451e+17 raw a  915.0s INTERRUPTED
