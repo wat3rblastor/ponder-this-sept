@@ -34,3 +34,13 @@ unit K=2001 shift=0 MOD=1133661268029390 stage1=10(3,2,5,59,71,83,89,101,107,113
   .. K=2001 shift=0 R=1.678e+09 surv=44827 conf=44827 best=34 287s (5.84e+06 res/s)
   .. K=2001 shift=0 R=1.745e+09 surv=46633 conf=46633 best=34 298s (5.86e+06 res/s)
   .. K=2001 shift=0 R=1.812e+09 surv=48417 conf=48417 best=34 309s (5.87e+06 res/s)
+  .. K=2001 shift=0 R=1.879e+09 surv=50230 conf=50230 best=34 320s (5.88e+06 res/s)
+  .. K=2001 shift=0 R=1.946e+09 surv=51997 conf=51997 best=34 330s (5.89e+06 res/s)
+  .. K=2001 shift=0 R=2.013e+09 surv=53760 conf=53760 best=34 341s (5.9e+06 res/s)
+  .. K=2001 shift=0 R=2.08e+09 surv=55569 conf=55569 best=34 352s (5.91e+06 res/s)
+  .. K=2001 shift=0 R=2.147e+09 surv=57385 conf=57385 best=34 363s (5.91e+06 res/s)
+  .. K=2001 shift=0 R=2.215e+09 surv=59168 conf=59168 best=34 374s (5.93e+06 res/s)
+  .. K=2001 shift=0 R=2.282e+09 surv=60882 conf=60882 best=34 384s (5.94e+06 res/s)
+  .. K=2001 shift=0 R=2.349e+09 surv=62723 conf=62723 best=34 395s (5.94e+06 res/s)
+K=2001 shift=0 MOD=1133661268029390 tierB=7 tierC=145 R=2404023530 surv=64173 conf=64173 best=34 404.6s (1.79e+14 raw/s)
+BEST n=34 a=9953500434618661 d=764704010864970  units=1 covered=7.255e+16 raw a  404.6s INTERRUPTED

@@ -114,3 +114,111 @@ n ≈ 54–55; `n = 58` is a few percent. Recorded here so the next session does
    benchmarked on this machine). **Critical:** keep the index arithmetic 32-bit — 64-bit `%` on
    the Apple GPU is 15× slower and would make the GPU *slower* than the CPU.
 3. Update `records.json` + `ANSWER.md` on every improvement; final write-up before the deadline.
+
+---
+
+## 2026-10-02/03 (session 1 continued, 20:00–00:00 CDT) — the real engine, and G1 opened
+
+### Record improved: n = 36 → **n = 43**
+
+`a = 5413537078288507`, `d = 48916598396160 = 128·D0`, last term `7468034210927227`.
+Verified by `src/verify.py` (maximal at both ends) **and** by the new constructive
+cross-check. This clears the G2 bonus (`n ≥ 42`). Found in `experiments/2026-10-03-ap58`
+at work unit `K = 128`, ~20 minutes on 8 cores.
+
+### Constructive independent verification (`src/crosscheck.py`)
+
+`verify.py` applies the bad-prime criterion — the same fact the search is built on, so using
+it alone is nearly circular. `crosscheck.py` instead *constructs* `x, y` with
+`x² + xy + y² = t` for every term, via Eisenstein-integer arithmetic: factor `t`, represent
+each prime power as a norm (`3 = N(2+ω)`; `p ≡ 1 mod 3` by Cornacchia on `p = u²+3v²`;
+`p ≡ 2 mod 3` only ever through `p²`), multiply, and check the identity by direct arithmetic.
+A representation is positive proof independent of any bad-prime theory. **PASS on n=43.**
+
+### Throughput: 2.3× from three fixes (3.5 → 5.8 M residues/s/core)
+
+Profiling said 277 ns/residue with ~240 of it in stage 3. Causes and fixes:
+- `pollard()` took **one gcd per iteration** (~1 ms per factorization). Brent's variant with
+  the gcd batched every 128 steps → the Loeschian test is ~20 µs and stage 3 is now ~8 ns per
+  residue, i.e. no longer the bottleneck.
+- Tier C was iterated in **ascending prime order**, so after 2 and 5 moved into stage 1 the AND
+  chain began with the feeblest killers (11, 17, 23 cut only `1/p`) and almost never
+  short-circuited. Now ordered by kill fraction.
+- Modulo by tier-C primes folds three 17-bit limbs of `R` with precomputed `2^17`, `2^34`
+  residues, so the divide is 32-bit instead of 64-bit.
+Also `--isl` was added to pipe values through the searcher's own test: 300 random values in
+`[1e16,1e17]` agree exactly with the Python implementation.
+
+### Stage 1 now pins 2 and 5 as well (≈1.8×)
+
+`a ≡ 1 mod 2` and `a ≢ 0 mod 5` belong in the CRT enumeration, not the bitmask stage:
+candidates with `a` even or divisible by 5 are now never constructed. Stage-1 components are
+generic `(modulus, start, step, count)` tuples. `MOD = 1133661268029390` over
+`{3,2,5,59,71,83,89,101,107,113}`, 4.67e9 admissible residues per unit — the design an
+optimization agent derived independently as the exact knapsack optimum for `MOD ≤ 1e16`.
+
+A **CRT self-check** was added after a silent-failure scare: it verifies `R0` hits the first
+good residue of every component and that each additive step moves only its own component.
+(The scare itself was an observation error — piping the searcher through `head -3` SIGPIPE'd it
+before it finished the unit. Don't diagnose a searcher through a truncating pipe.)
+
+### Why n ≥ 58 is not reachable here, with numbers
+
+Measured 5.8e6 residues/s/core ⇒ **7.2e14 candidate `(a,d)` pairs/s on 8 cores**.
+Calibrated `P(58) ≈ 2.35e-22` per raw candidate at the minimal term size, times a 0.4415
+penalty because avoid-only pinning cannot find APs where `q² |` a term. Expected 58-hits over
+the whole remaining budget: **~1.6e-3**. Expected best run: **n ≈ 47–48**.
+Independent agreement: a research agent reproduced `P(58)` to within 14% by a different route,
+and a second put the total cost at 12–30 CPU-days (its figure was optimistic only because it
+held the correlation correction constant in `n`; measured, that factor falls 0.11 → 0.02 →
+1.75e-3 at n = 31, 36, 58).
+The barrier is *existence plus coverage*, not cleverness: 58-term APs first become abundant
+around last term `~1e18`, where the space holds `~1e22` candidates, and we can examine `~1e19`.
+
+### Ruled out this session (do not redo)
+
+- **Extending or repairing a found AP by scaling is impossible, probability exactly 0.**
+  Define the bad-parity vector `π(n) = {q bad : v_q(n) odd}`; then `n ∈ L ⟺ π(n) = ∅` and
+  `π(cn) = π(c) △ π(n)`. So `c·t_j ∈ L` for all `j` iff `π(t_j) = π(c)` for all `j` — scaling
+  XORs every term's vector identically. In a primitive AP each bad prime divides at most one
+  term, so `m ≥ 2` terms cannot share a nonempty vector; hence `π(c) = ∅`, `c` is Loeschian,
+  and length is preserved. Corollary: **a 57-of-58 near miss is never repairable**, so
+  collecting near misses is pointless. Verified on the 28-term AP: exhausting all 2⁷
+  multipliers built from every bad prime near the window leaves the maximum at 28.
+- **Sub/super-progressions**: a step-`d/2` super-progression needs 115 consecutive Loeschian
+  terms — strictly harder.
+- **Pool/meet-in-the-middle**: no combining operation exists (an AP is fixed by two terms, and
+  the only structure-preserving maps are length-preserving Loeschian scalings).
+- **The `q²` relaxation at `q = 59`**: admits 2× more candidates but finds only 1.9657× more
+  solutions, and costs `log 59` of extra modulus. Net ≈ −1.6×.
+- **More or fewer tier-B primes**: adding 131 makes `MOD = 1.49e17`, forcing terms ~130× larger
+  (net −22×); dropping to 6 primes is −5×. The 7-prime set is the optimum because `64·MOD` sets
+  the minimum term size and density falls as `1/√(log T)`.
+- **Dropping 41/47/53 from `D0`** and handling them mod `p²`: −0.018× to −0.47×. Keep them.
+- **`3²` or `3³` in `d`**: −0.33×, −0.11×. 3 is unconstrained; extra factors only inflate terms.
+- **Ordering `K` by singular series**: worth ×1.00. Requiring `q | d` is arithmetically the same
+  object as pinning `q` in `MOD` (gains agree to 0.01%), and that is already collected.
+- **No published `(a,d)` exists to extend or seed from.** The IBM September 2026 solution page
+  is still 404; the blog publishes only lengths. No solver published numbers or code; OEIS has
+  no Loeschian-AP sequence even in draft. (Final standings, for the record: 57 Jackson La
+  Vallee; 55 ×5; 51 ×2; 50; 48 ×3; 47 ×4; 46 ×3; 45 ×4; 44.)
+- Apple M2 **does** expose a GPU to Metal and a benchmarked port of this kernel runs at 1.83 G
+  residues/s, 7× the whole CPU — but only if the index arithmetic stays 32-bit (64-bit `%` on
+  that GPU is 15× slower and would make it *lose* to the CPU). Not implemented: 7× buys ~1.4
+  terms, and the CPU-side fixes above were cheaper per unit of gain.
+
+### G1 opened (GOAL.md §1 sanctions this once G3 is blocked)
+
+G1 — a 35-term AP minimising the last term — is the puzzle's *actual* main challenge, and
+unlike G3 it is **exhaustively solvable**: for `n = 35` the bad primes with `2p ≤ 35` are
+`2, 5, 11, 17`, and `p | d` is a theorem for those, so with the forced `3` **every** valid step
+is a multiple of `5610`. Scanning `d = 5610·m` for all `m` with `34d ≤ L`, over all `a`, is
+therefore a *complete* search for last term `≤ L`, and yields a provable minimum.
+
+`loeschsearch.c` gained `--nmin`, reporting the smallest `a` whose run reaches `nmin` for each
+step (the descending scan means the last qualifying `a` seen is the smallest).
+
+- `experiments/2026-10-03-g1`, `L = 2e8`, `m = 1..1049`: **no 35-term AP exists with last term
+  ≤ 2·10⁸** — longest runs in the family top out at 27–29. Exhaustive negative result.
+- `L = 4e8`, `m = 1..2100` in progress. The productive sub-family is `m ≡ 0 mod 667`
+  (`d` divisible by `23·29`), where removing those two cliffs is worth ~130×.

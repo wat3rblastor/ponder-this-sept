@@ -37,3 +37,13 @@ unit K=2801 shift=0 MOD=1133661268029390 stage1=10(3,2,5,59,71,83,89,101,107,113
   .. K=2801 shift=0 R=1.678e+09 surv=44727 conf=44712 best=31 286s (5.86e+06 res/s)
   .. K=2801 shift=0 R=1.745e+09 surv=46546 conf=46530 best=31 297s (5.88e+06 res/s)
   .. K=2801 shift=0 R=1.812e+09 surv=48342 conf=48326 best=31 308s (5.89e+06 res/s)
+  .. K=2801 shift=0 R=1.879e+09 surv=50133 conf=50116 best=31 319s (5.9e+06 res/s)
+  .. K=2801 shift=0 R=1.946e+09 surv=51972 conf=51954 best=31 330s (5.9e+06 res/s)
+  .. K=2801 shift=0 R=2.013e+09 surv=53730 conf=53712 best=31 340s (5.92e+06 res/s)
+  .. K=2801 shift=0 R=2.08e+09 surv=55591 conf=55571 best=31 351s (5.93e+06 res/s)
+  .. K=2801 shift=0 R=2.147e+09 surv=57394 conf=57373 best=31 362s (5.93e+06 res/s)
+  .. K=2801 shift=0 R=2.215e+09 surv=59202 conf=59180 best=31 373s (5.94e+06 res/s)
+  .. K=2801 shift=0 R=2.282e+09 surv=61067 conf=61045 best=31 384s (5.94e+06 res/s)
+  .. K=2801 shift=0 R=2.349e+09 surv=62844 conf=62822 best=31 395s (5.95e+06 res/s)
+K=2801 shift=0 MOD=1133661268029390 tierB=7 tierC=145 R=2405470650 surv=64392 conf=64368 best=31 404.6s (1.79e+14 raw/s)
+BEST n=31 a=26967360467131567 d=1070432750840970  units=1 covered=7.255e+16 raw a  404.6s INTERRUPTED

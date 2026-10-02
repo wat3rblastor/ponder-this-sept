@@ -107,14 +107,20 @@ static void sieve_selftest(void) {
 typedef struct {
     int best_n;
     u64 best_a;
+    u64 min_a;           /* smallest a whose run reaches nmin_g (0 = none) */
+    int found_min;
     u64 hist[MAXHIST];   /* hist[k] = #a whose run is exactly k */
 } scan_result;
+
+static int nmin_g = 0;   /* G1 objective: minimise a + (nmin_g-1)*d */
 
 /* Longest Loeschian run for step d over all a in [0, N], terms <= N. */
 static scan_result scan_d(u64 d) {
     scan_result r;
     r.best_n = 0;
     r.best_a = 0;
+    r.min_a = 0;
+    r.found_min = 0;
     memset(r.hist, 0, sizeof(r.hist));
 
     u8 *buf = calloc(d, 1);
@@ -129,6 +135,7 @@ static scan_result scan_d(u64 d) {
         u8 cur = getbit(a) ? (u8)(prev < 255 ? prev + 1 : 255) : 0;
         buf[i] = cur;
         if (cur > r.best_n) { r.best_n = cur; r.best_a = a; }
+        if (nmin_g && cur >= nmin_g) { r.min_a = a; r.found_min = 1; }
         r.hist[cur]++;
         if (a == 0) break;
         a--;
@@ -166,6 +173,7 @@ int main(int argc, char **argv) {
         else if (!strcmp(k, "--mmax")) mmax = strtoull(NEXT(), NULL, 10);
         else if (!strcmp(k, "--mstep")) mstep = strtoull(NEXT(), NULL, 10);
         else if (!strcmp(k, "--hist-min")) hist_min = atoi(NEXT());
+        else if (!strcmp(k, "--nmin")) nmin_g = atoi(NEXT());
         else if (!strcmp(k, "--out")) out = NEXT();
         else if (!strcmp(k, "--resume")) resume = true;
         else usage(argv[0]);
@@ -210,6 +218,8 @@ int main(int argc, char **argv) {
 
     int global_best = 0;
     u64 gb_a = 0, gb_d = 0;
+    u64 best_last = 0;          /* smallest a+(nmin-1)d seen so far */
+    u64 bl_a = 0, bl_d = 0;
     for (u64 m = mmin; m <= mmax && !stop_requested; m += mstep) {
         if (done[m]) continue;
         u64 d = D0 * m;
@@ -229,6 +239,17 @@ int main(int argc, char **argv) {
             gb_d = d;
             fprintf(stderr, "*** new best n=%d  a=%" PRIu64 "  d=%" PRIu64 "\n",
                     global_best, gb_a, gb_d);
+        }
+        if (nmin_g && r.found_min) {
+            u64 last = r.min_a + (u64)(nmin_g - 1) * d;
+            if (!best_last || last < best_last) {
+                best_last = last; bl_a = r.min_a; bl_d = d;
+                fprintf(stderr, "*** G1 n=%d last=%" PRIu64 " a=%" PRIu64
+                        " d=%" PRIu64 "\n", nmin_g, best_last, bl_a, bl_d);
+                if (of) { fprintf(of, "{\"g1\":true,\"n\":%d,\"last\":%"
+                          PRIu64 ",\"a\":%" PRIu64 ",\"d\":%" PRIu64 "}\n",
+                          nmin_g, best_last, bl_a, bl_d); fflush(of); }
+            }
         }
         fprintf(stderr, "m=%" PRIu64 " d=%" PRIu64 " best_n=%d a=%" PRIu64
                 " (%.1fs)\n", m, d, r.best_n, r.best_a, el);
@@ -251,6 +272,9 @@ int main(int argc, char **argv) {
     if (of) fclose(of);
     free(L);
     free(done);
+    if (nmin_g)
+        printf("G1 BEST last=%" PRIu64 " a=%" PRIu64 " d=%" PRIu64 " (n=%d)\n",
+               best_last, bl_a, bl_d, nmin_g);
     printf("BEST n=%d a=%" PRIu64 " d=%" PRIu64 "  (total %.1fs%s)\n",
            global_best, gb_a, gb_d, now_s() - t0,
            stop_requested ? ", INTERRUPTED" : "");
