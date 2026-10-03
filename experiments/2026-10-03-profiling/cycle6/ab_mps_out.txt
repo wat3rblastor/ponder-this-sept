@@ -1,0 +1,3 @@
+engines=2  res/s = 9.5458e+10
+engines=1  res/s = 1.0455e+11
+engines=2  res/s = 1.0455e+11

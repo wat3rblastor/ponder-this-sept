@@ -24,3 +24,18 @@ records.json updated: g3_longest -> n=56, last=1008772583246599651
 history now: [36, 43, 35, 47, 55]
 ANSWER.md regenerated
 2026-10-03 18:28:33 PROMOTED n=56
+2026-10-03 18:28:34 committed n=56
+2026-10-03 18:28:39 pushed n=56
+listed n=56 a=240533583825657151 d=13967981807653500
+4 distinct progressions of 55+ terms; ANSWER.md regenerated
+2026-10-03 18:28:43 55+ list updated and pushed
+listed n=56 a=410226150109637989 d=45523391543351370
+5 distinct progressions of 55+ terms; ANSWER.md regenerated
+2026-10-03 18:42:21 55+ list updated and pushed
+2026-10-03 19:09:26 candidate n=57 a=416580650729355319 d=42208909841086560 (record was 56)
+verifying a=416580650729355319 d=42208909841086560 n=57 ...
+  verify.py PASS, cross-check PASS, maximal=True
+records.json updated: g3_longest -> n=57, last=2780279601830202679
+history now: [36, 43, 35, 47, 55, 56]
+ANSWER.md regenerated
+2026-10-03 19:09:26 PROMOTED n=57

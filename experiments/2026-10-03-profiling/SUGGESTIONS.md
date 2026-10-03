@@ -389,3 +389,9 @@ Clocks 2164-2309 MHz (about +15 MHz versus cycle 5), temperatures 78-90 C. Stabl
    unit (expected overall 2-5%, estimate).
 3. Do not spend effort on queued launches (<= 1%).
 4. Power limit 600 W (host side), unchanged.
+
+## Watchdog — from 2026-10-03 19:05 UTC (v3, --nch 8 --t0 28, 16 engines)
+
+Each line covers the preceding window. Sources are `watch/units_ts.txt` (timestamped engine
+log lines) and `watch/samples.txt` (5 s samples); the line is produced by `watch/watch.py`.
+GPU busy/MHz/C are per-GPU means over the window.
