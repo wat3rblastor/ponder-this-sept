@@ -42,6 +42,10 @@
 #include <string.h>
 #include <stdint.h>
 #include <vector>
+#include <deque>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 #include <set>
 #include <string>
 #include <algorithm>
@@ -676,27 +680,20 @@ int main(int argc, char **argv) {
     double prep_s = 0, up_s = 0, wait_s = 0, ksetup_s = 0, fin_s = 0, launch_s = 0;
 
     /* ---- finish a unit: wait for its kernel, pull survivors, stage 3 ---- */
-    auto finish_unit = [&](int b) {
-        Unit &U = inflight[b];
-        if (!U.valid) return;
-        CK(cudaEventSynchronize(U.done));
-        double gpu_s = lc_now_s() - U.t_launch;
-        u32 nsurv = 0;
-        CK(cudaMemcpyAsync(&nsurv, d_cnt[b], 4, cudaMemcpyDeviceToHost, stream[b]));
-        CK(cudaStreamSynchronize(stream[b]));
-        bool overflow = nsurv > CAP;
-        if (overflow) {
-            fprintf(stderr, "WARNING: survivor buffer overflow (%u > %u); "
-                    "results for K=%llu shift=%llu are INCOMPLETE\n",
-                    nsurv, CAP, (unsigned long long)U.K, (unsigned long long)U.shift);
-            nsurv = CAP;
-        }
-        if (nsurv) {   /* on this unit's stream: a plain cudaMemcpy uses the legacy default
-                        * stream, which waits for the OTHER stream's running kernel */
-            CK(cudaMemcpyAsync(h_hits.data(), d_H[b], (size_t)nsurv * 16, cudaMemcpyDeviceToHost, stream[b]));
-            CK(cudaStreamSynchronize(stream[b]));
-        }
-
+    /* ---- stage 3 runs on its own worker thread, fed through a small queue, so
+     * the GPU never waits for the CPU: a large unit's exact tests can take tens
+     * of seconds while the next kernels are short ---- */
+    struct Task { Unit U; std::vector<u64> hv; u32 nsurv; bool overflow;
+                  double gpu_s, prep_s, up_s, wait_s; };
+    std::deque<Task> tq;
+    std::mutex tq_m;
+    std::condition_variable tq_cv, tq_space;
+    bool tq_done = false;
+    auto stage3 = [&](Task &T) {
+        Unit &U = T.U;
+        const std::vector<u64> &h_hits = T.hv;
+        const u32 nsurv = T.nsurv; const bool overflow = T.overflow;
+        const double gpu_s = T.gpu_s, prep_s = T.prep_s, up_s = T.up_s, wait_s = T.wait_s;
         /* ---- stage 3 on the CPU: exact test of each surviving window ---- */
         double ts3 = lc_now_s();
         u64 nconf = 0, nbits = 0;
@@ -782,6 +779,52 @@ int main(int argc, char **argv) {
                    "confirmed=%llu\n", (unsigned long long)U.K,
                    (unsigned long long)U.shift, (double)U.total, nsurv,
                    (unsigned long long)nbits, (unsigned long long)nconf);
+    };
+    std::thread worker([&]() {
+        for (;;) {
+            Task T;
+            {
+                std::unique_lock<std::mutex> lk(tq_m);
+                tq_cv.wait(lk, [&] { return tq_done || !tq.empty(); });
+                if (tq.empty()) return;
+                T = std::move(tq.front()); tq.pop_front();
+            }
+            tq_space.notify_all();
+            stage3(T);
+        }
+    });
+
+    auto finish_unit = [&](int b) {
+        Unit &U = inflight[b];
+        if (!U.valid) return;
+        CK(cudaEventSynchronize(U.done));
+        double gpu_s = lc_now_s() - U.t_launch;
+        u32 nsurv = 0;
+        CK(cudaMemcpyAsync(&nsurv, d_cnt[b], 4, cudaMemcpyDeviceToHost, stream[b]));
+        CK(cudaStreamSynchronize(stream[b]));
+        bool overflow = nsurv > CAP;
+        if (overflow) {
+            fprintf(stderr, "WARNING: survivor buffer overflow (%u > %u); "
+                    "results for K=%llu shift=%llu are INCOMPLETE\n",
+                    nsurv, CAP, (unsigned long long)U.K, (unsigned long long)U.shift);
+            nsurv = CAP;
+        }
+        if (nsurv) {   /* on this unit's stream: a plain cudaMemcpy uses the legacy default
+                        * stream, which waits for the OTHER stream's running kernel */
+            CK(cudaMemcpyAsync(h_hits.data(), d_H[b], (size_t)nsurv * 16, cudaMemcpyDeviceToHost, stream[b]));
+            CK(cudaStreamSynchronize(stream[b]));
+        }
+
+        Task T;
+        T.U = U; T.hv.assign(h_hits.begin(), h_hits.begin() + (size_t)nsurv * 2);
+        T.nsurv = nsurv; T.overflow = overflow; T.gpu_s = gpu_s;
+        T.prep_s = prep_s; T.up_s = up_s; T.wait_s = wait_s;
+        {
+            std::unique_lock<std::mutex> lk(tq_m);
+            tq_space.wait(lk, [&] { return tq.size() < 3; });
+            tq.push_back(std::move(T));
+        }
+        tq_cv.notify_one();
         U.valid = false;
     };
 
@@ -1125,6 +1168,9 @@ int main(int argc, char **argv) {
     }
     finish_unit(buf);
     finish_unit(buf ^ 1);
+    { std::lock_guard<std::mutex> lk(tq_m); tq_done = true; }
+    tq_cv.notify_all();
+    worker.join();
 
     if (of) fclose(of);
     printf("GPU BEST n=%d  units=%llu covered=%.4g raw a  survivors=%llu confirmed=%llu  %.1fs%s\n",
