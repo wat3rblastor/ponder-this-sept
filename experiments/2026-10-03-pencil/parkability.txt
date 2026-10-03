@@ -1,0 +1,16 @@
+y_k (= |det M_k|) at the automatic indices: {0: 5, 1: 14, 2: 19, 6: 31, 8: 35, 12: 41, 17: 46, 22: 49, 25: 50, 33: 50, 36: 49, 41: 46, 46: 41, 50: 35, 52: 31, 56: 19, 57: 14}
+
+bad primes p<58 and whether p can be LEFT OUT of d
+(needs a residue class r mod p whose whole intersection with [0,57]
+ lies in A, AND p | y_k for every k in it)
+  p= 2: classes fully inside A: []   of those with p|y_k on all: []  -> must divide d
+  p= 5: classes fully inside A: []   of those with p|y_k on all: []  -> must divide d
+  p=11: classes fully inside A: []   of those with p|y_k on all: []  -> must divide d
+  p=17: classes fully inside A: []   of those with p|y_k on all: []  -> must divide d
+  p=23: classes fully inside A: []   of those with p|y_k on all: []  -> must divide d
+  p=29: classes fully inside A: [12, 17]   of those with p|y_k on all: []  -> must divide d
+  p=41: classes fully inside A: [0, 17, 22, 25, 33, 36]   of those with p|y_k on all: []  -> must divide d
+  p=47: classes fully inside A: [12, 17, 22, 25, 33, 36, 41, 46]   of those with p|y_k on all: []  -> must divide d
+  p=53: classes fully inside A: [6, 8, 12, 17, 22, 25, 33, 36, 41, 46, 50, 52]   of those with p|y_k on all: []  -> must divide d
+
+so d must be divisible by 127386974990 = 2*5*11*17*23*29*41*47*53 ?

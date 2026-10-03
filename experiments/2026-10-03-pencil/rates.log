@@ -1,0 +1,5 @@
+T~1e10: members 4000  automatic failures 0/68000  rho_nonauto=0.5565  rho^41=3.668e-11  longest run 24  mean 22.82/41
+T~1e12: members 4000  automatic failures 0/68000  rho_nonauto=0.5027  rho^41=5.672e-13  longest run 23  mean 20.61/41
+T~1e14: members 4000  automatic failures 0/68000  rho_nonauto=0.4647  rho^41=2.269e-14  longest run 21  mean 19.05/41
+T~1e16: members 4000  automatic failures 0/68000  rho_nonauto=0.4412  rho^41=2.683e-15  longest run 19  mean 18.09/41
+T~1e18: members 2500  automatic failures 0/42500  rho_nonauto=0.4130  rho^41=1.801e-16  longest run 19  mean 16.93/41

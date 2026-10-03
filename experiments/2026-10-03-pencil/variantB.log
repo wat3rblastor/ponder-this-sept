@@ -1,0 +1,13 @@
+variant B: M' = 2*5*11*17*23*29*41*47*53 = 127386974990   d_min = 3M' = 382160924970
+smallest member: M1=144478 M2=881705 p=144478 q=14837
+  a=57731773177
+  d=382160924970
+  T=21840904496467 (14 digits)
+  asymptotic c_B = 5.3839e-11   (F17 c=7.1e-7 scaled by density ratio 7.5830e-05)
+  exact members(T<=1e14) = 823   c_eff=8.2300e-12
+  exact members(T<=1e15) = 18,216   c_eff=1.8216e-11
+  exact members(T<=1e16) = 269,099   c_eff=2.6910e-11
+variant B measured pass rates (41 non-automatic indices):
+  T~1e14: members 3000  autofail 0/51000  rho=0.5052  rho^41=6.943e-13  longest run 22
+  T~1e16: members 3000  autofail 0/51000  rho=0.4736  rho^41=4.899e-14  longest run 20
+  T~1e18: members 3000  autofail 0/51000  rho=0.4485  rho^41=5.274e-15  longest run 21

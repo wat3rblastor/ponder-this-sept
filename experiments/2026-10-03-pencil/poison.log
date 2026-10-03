@@ -1,0 +1,9 @@
+T~1e12: clean-index rate 0.5486 (n=113347)   poisoned-by-41/47/53 rate 0.0119 (n=9653)
+        mean poisoned non-automatic indices per member 3.218
+        P(all 41 pass) = 0.5486^37.78 * 0.0119^3.22 = 9.079e-17   [naive rho^41 = 7.715e-13, i.e. naive is 8498x optimistic]
+T~1e16: clean-index rate 0.4760 (n=113352)   poisoned-by-41/47/53 rate 0.0123 (n=9648)
+        mean poisoned non-automatic indices per member 3.216
+        P(all 41 pass) = 0.4760^37.78 * 0.0123^3.22 = 4.798e-19   [naive rho^41 = 2.334e-15, i.e. naive is 4864x optimistic]
+T~1e18: clean-index rate 0.4495 (n=113504)   poisoned-by-41/47/53 rate 0.0104 (n=9496)
+        mean poisoned non-automatic indices per member 3.165
+        P(all 41 pass) = 0.4495^37.83 * 0.0104^3.17 = 3.873e-20   [naive rho^41 = 2.323e-16, i.e. naive is 5999x optimistic]

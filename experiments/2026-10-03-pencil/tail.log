@@ -1,0 +1,19 @@
+T<=1e12, 200000 members, rho_nonauto=0.50593
+count of non-automatic passes: observed vs binomial(41,rho)
+  26/41  obs    8073  exp     6554.3  ratio 1.232
+  27/41  obs    4008  exp     3728.7  ratio 1.075
+  28/41  obs    2401  exp     1909.1  ratio 1.258
+  29/41  obs    1030  exp      876.4  ratio 1.175
+  30/41  obs     307  exp      359.0  ratio 0.855
+  31/41  obs     106  exp      130.4  ratio 0.813
+  32/41  obs      38  exp       41.7  ratio 0.910
+  33/41  obs       0  exp       11.7  ratio 0.000
+  34/41  obs       0  exp        2.8  ratio 0.000
+  35/41  obs       0  exp        0.6  ratio 0.000
+  36/41  obs       0  exp        0.1  ratio 0.000
+  37/41  obs       0  exp        0.0  ratio 0.000
+  38/41  obs       0  exp        0.0  ratio 0.000
+  39/41  obs       0  exp        0.0  ratio 0.000
+  40/41  obs       0  exp        0.0  ratio 0.000
+  41/41  obs       0  exp        0.0  ratio 0.000
+longest-run histogram: [(3, 17962), (4, 12669), (5, 29137), (6, 32151), (7, 34269), (8, 23863), (9, 20394), (10, 13100), (11, 5847), (12, 3607), (13, 3368), (14, 1560), (15, 1013), (16, 387), (17, 221), (18, 236), (19, 100), (20, 45), (21, 37), (22, 3), (23, 26), (24, 4), (29, 1)]

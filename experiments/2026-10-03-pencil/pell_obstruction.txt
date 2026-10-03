@@ -1,0 +1,17 @@
+alpha>0 (Pell) configurations in the previous exhaustive log,
+by hit count:  total found  /  how many satisfy the realizability
+condition disc_k(S) = beta^2-4*alpha*gamma > 0 (Theorem 1):
+  hits= 15   found     32   realizable-disc      0
+  hits= 14   found     97   realizable-disc     34
+  hits= 13   found    282   realizable-disc    126
+  hits= 12   found   1126   realizable-disc    471
+  hits= 11   found   2991   realizable-disc   1209
+  hits= 10   found   8718   realizable-disc   3635
+
+best alpha>0 configs that pass Theorem 1:
+  hits=14 alpha=24 beta=-1368 gamma=18769 disc=69600
+  hits=14 alpha=21 beta=-630 gamma=3025 disc=142800
+  hits=14 alpha=21 beta=-924 gamma=8464 disc=142800
+  hits=14 alpha=21 beta=-966 gamma=9409 disc=142800
+  hits=14 alpha=21 beta=-1008 gamma=10396 disc=142800
+  hits=14 alpha=21 beta=-1050 gamma=11425 disc=142800

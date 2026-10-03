@@ -4,3 +4,5 @@ alpha=-3000 best=12
 alpha=-2500 best=12
 alpha=-2000 best=12
 alpha=-1500 best=14
+alpha=-1000 best=16
+alpha=-500 best=17

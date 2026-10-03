@@ -1,0 +1,8 @@
+exact member counts (d>0 branch | d<0 branch = AP read backwards)
+  T<=1e 8: d>0            0   d<0              0   total              0   c_eff=0.0000e+00
+  T<=1e 9: d>0           75   d<0             74   total            149   c_eff=1.4900e-07
+  T<=1e10: d>0        1,605   d<0          1,587   total          3,192   c_eff=3.1920e-07
+  T<=1e11: d>0       23,087   d<0         22,782   total         45,869   c_eff=4.5869e-07
+  T<=1e12: d>0      284,019   d<0        280,435   total        564,454   c_eff=5.6445e-07
+  T<=1e13: d>0    3,198,698   d<0      3,159,768   total      6,358,466   c_eff=6.3585e-07
+  T<=1e14: d>0   33,901,222   d<0     33,501,579   total     67,402,801   c_eff=6.7403e-07

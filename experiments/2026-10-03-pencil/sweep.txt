@@ -1,0 +1,8 @@
+4629 configurations with >=12 discriminant-level hits
+
+alpha=0:    186 configs, max disc-level hits 13, max REALIZED by an integral pencil 13
+   best: S=0k^2-2904k+165649  a=(1, -1, 124237) d=(0, 0, -2178)  |A|=13  A=[0, 6, 17, 22, 31, 35, 42, 45, 50, 52, 55, 56, 57]
+alpha>0:   1537 configs, max disc-level hits 15, max REALIZED by an integral pencil 4
+   best: S=24k^2-1560k+24400  a=(85, -40, 220) d=(-3, 0, -6)  |A|=4  A=[8, 18, 24, 26]
+alpha<0:   2906 configs, max disc-level hits 17, max REALIZED by an integral pencil 17
+   best: S=-12k^2+672k+784  a=(1, 0, 588) d=(0, 6, 504)  |A|=17  A=[0, 1, 5, 7, 11, 16, 21, 24, 32, 35, 40, 45, 49, 51, 55, 56, 57]

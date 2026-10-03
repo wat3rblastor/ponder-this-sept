@@ -594,3 +594,59 @@ strengthening of the forced-prime theorem, and it is what keeps the square-shape
   Measure M(n) exhaustively for n = 20..40+, fit, extrapolate to 58 with honest error bars.
   WIN if M(58) <= ~1e15 (the search region is far denser than modelled and the project re-aims);
   LOSS if >= 1e17. `experiments/2026-10-03-mcurve`.
+
+### GOAL2 cycle 2 — verdicts (all losses, all corrective)
+
+| # | hypothesis | verdict |
+|---|---|---|
+| H4 | attack the register | **partial win**: the wrong premise is the `41,47,53 \| d` convention — but see H7 |
+| H5 | is the counting heuristic right about where 58s first exist? | **LOSS** — `M(58) ≈ 3e17` (range 2e16–2e18), heuristic confirmed |
+| H6 | construct the Pell/elliptic pencil (15/17 free terms) | **LOSS** — best family needs 3.6e18 members at `T ~ 5e24` |
+| H7 | implement + measure the square option | **LOSS** — validates perfectly, yields 0.40x |
+| — | has anyone published a long progression? | **LOSS** — nothing anywhere |
+
+**H4 proved register item 1 shut.** If all terms of a non-primitive AP are Loeschian with
+`g = gcd(a,d)`, then `pi(g)` is empty (a prime in it would divide every term, hence both `a'` and
+`d'`), so `g` is Loeschian and the reduced AP is itself a solution. Every non-primitive solution is
+(Loeschian constant) x (primitive solution). The same XOR argument kills the variable-multiplier
+and scaled-set variants. Do not reopen.
+
+**H7 corrected H4 and me, and this is the important one.** The 5.33x is the ratio of the *union of
+all 8 modes* to all-in-d; the pure square family is **0.406x** of all-in-d. The other 81% is spread
+over seven modes and costs work proportional to its size — extra space, not a speedup. And the
+term-size claim double-counted: dropping 41,47,53 lowers `d` by 1e5 but the `q^2` congruences raise
+the smallest admissible `a` by 2.5e5, so **all eight modes have the same existence threshold,
+2.0–3.1e12**. Per *survivor* the modes are equivalent; the whole difference is survivors/second,
+because a `q^2` component costs `q^2` of modulus and buys no enumeration efficiency — H1's
+cancellation law, applied correctly.
+Validation was clean: the patched engine finds the proved-optimal 35-term progression in 0.5 s
+(the all-in-d engine cannot — control best run 31), and produced a new verified 37-term
+progression in the square family, `a = 212569971883993, d = 14421166980` (verified, maximal).
+
+**H5's by-products are worth more than its verdict.** New proved exhaustive points:
+M(22)=157831, M(25)=160801, M(26)=1673461, M(28)=5719081, M(29..31)=1.853e7/1.918e7/1.982e7,
+M(34)=309248701, M(35)=311958331, M(36)>3.30e8, plus n=14..21. A base=1 sweep assuming **no**
+forcing reproduces M(14..24) exactly, which empirically validates the forced-base theorem. It also
+found three errors in the analytic model this project quotes: a missing triangular 1/2; a missing
+`prod_{p|d}(1-1/p)` worth 3.2x at n=58; and `corr_q = 1-n/(q+1)` is valid only for `q >= n` — at
+n=58 it is applied to q=41,47,53 where it is **negative**, the correct factor being
+`(1-(n-q)/q)/(q+1)`.
+
+**A structural fact worth recording**: n=58 sits exactly on a cliff. `2*29 = 58`, so a 58-index
+window covers every residue mod 29 exactly twice, forcing `29 | d`. At n=57 it is optional. Hence
+**no 57-term progression with `29 ∤ d` can ever extend to 58** — the cheap 57s are dead ends, and
+58 is genuinely harder than 57 by more than one term's worth.
+
+### Cycle 3, dispatched — audit our own numbers
+
+Since H5 found sign errors in the model at exactly the primes that dominate n=58, the headline
+cost figures may be wrong too, and they are what say the laptop is ~1e8 short.
+
+- **H8 — measure the laptop cost empirically** rather than from the model: run the engine, build
+  the run-length histogram, fit the decay, extrapolate to 58, and cross-check against the one hard
+  external point (8 GPUs, 7.45e11 res/s, ~0.4/hour). WIN if < ~1000 laptop-hours.
+  `experiments/2026-10-03-laptopcost`.
+- **H9 — audit the planner's ranking.** Yield per unit falls ~16x across the plan, so ordering is
+  worth ~2.5x; if the score shares the model's errors we are searching in the wrong order. Measure
+  old vs corrected ranking against actual engine counts. WIN at >= 2x.
+  `experiments/2026-10-03-planaudit`.
