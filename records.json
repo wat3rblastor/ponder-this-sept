@@ -1,17 +1,17 @@
 {
   "g3_longest": {
-    "a": 11687581876345393,
-    "d": 202927451159070,
-    "n": 55,
-    "last": 22645664238935173,
-    "d_factored": "2 * 3^3 * 5 * 11 * 17 * 23 * 29 * 41 * 47 * 53 * 59",
+    "a": 240533583825657151,
+    "d": 13967981807653500,
+    "n": 56,
+    "last": 1008772583246599651,
+    "d_factored": "2^2 * 3 * 5^3 * 11 * 17^2 * 23 * 29 * 41 * 43 * 47 * 53",
     "verified": true,
-    "verifier": "src/verify.py 11687581876345393 202927451159070 55 --maximal",
-    "cross_checked": "src/crosscheck.py 11687581876345393 202927451159070 55",
+    "verifier": "src/verify.py 240533583825657151 13967981807653500 56 --maximal",
+    "cross_checked": "src/crosscheck.py 240533583825657151 13967981807653500 56",
     "maximal_both_ends": true,
     "method": "experiments/2026-10-03-gpu",
     "date": "2026-10-03",
-    "K": 531
+    "K": 36550
   },
   "g1_min_last_term_35": {
     "a": 219830911,
@@ -34,9 +34,9 @@
   },
   "g2_at_least_42": {
     "achieved": true,
-    "n": 55,
-    "a": 11687581876345393,
-    "d": 202927451159070,
+    "n": 56,
+    "a": 240533583825657151,
+    "d": 13967981807653500,
     "verified": true,
     "note": "cleared by the G3 record above"
   },
@@ -96,6 +96,20 @@
       "method": "experiments/2026-10-03-gpu",
       "date": "2026-10-03",
       "K": 205
+    },
+    {
+      "a": 11687581876345393,
+      "d": 202927451159070,
+      "n": 55,
+      "last": 22645664238935173,
+      "d_factored": "2 * 3^3 * 5 * 11 * 17 * 23 * 29 * 41 * 47 * 53 * 59",
+      "verified": true,
+      "verifier": "src/verify.py 11687581876345393 202927451159070 55 --maximal",
+      "cross_checked": "src/crosscheck.py 11687581876345393 202927451159070 55",
+      "maximal_both_ends": true,
+      "method": "experiments/2026-10-03-gpu",
+      "date": "2026-10-03",
+      "K": 531
     }
   ],
   "g3_runs_55plus": [
