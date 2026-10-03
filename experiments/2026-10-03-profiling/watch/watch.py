@@ -10,7 +10,7 @@ for l in open('units_ts.txt'):
     m=re.match(r'K=(\d+) sh=(\d+) MOD=(\d+) .*?res=([\d.e+]+)',p[2])
     K,s,MOD,r=int(m[1]),int(m[2]),int(m[3]),float(m[4])
     eu,_=E(K,s); e+=eu; res+=r; n+=1
-    mix['ref' if abs(MOD-REF)<1e6 else ('c59' if abs(MOD-2517112306980510)<1e6 else 'oth')]+=r
+    mix['ref' if abs(MOD-REF)<1e6 else ('c59' if abs(MOD-2517112306980510)<1e6 else ('big' if MOD>=2.6e15 else 'oth'))]+=r
 T=[];G=collections.defaultdict(list)
 cur=None
 for l in open('samples.txt'):
@@ -34,10 +34,10 @@ for g in range(8):
     if worst*5>60: alerts.append(f'GPU{g} <90% busy for {worst*5}s')
     gs.append('%d:%.0f%%/%.0f/%.0fC'%(g,sum(x[1] for x in v)/len(v),sum(x[2] for x in v)/len(v),sum(x[4-1] for x in v)/len(v)))
 R=sum(mix.values()) or 1
-req=(mix['ref']+1.40*mix['c59']+1.25*mix['oth'])/W/8
+req=(mix['ref']+1.40*mix['c59']+1.70*mix['big']+1.25*mix['oth'])/W/8
 if res>0 and W>=300 and req<0.9*1.33e11: alerts.append(f'REF-EQUIV RATE {req:.3e} < 90% of 1.33e11 per GPU')
 line=(f"- {time.strftime('%H:%M',time.gmtime(now))} UTC [{W/60:.0f} min]: {res/W:.3e} res/s, E58/h {3600*e/W:.3f}, "
-      f"E58/1e15res {1e15*e/max(res,1):.3f}, mix ref/59|K/other {100*mix['ref']/R:.0f}/{100*mix['c59']/R:.0f}/{100*mix['oth']/R:.0f}%, "
+      f"E58/1e15res {1e15*e/max(res,1):.3f}, mix ref/59|K/big/other {100*mix['ref']/R:.0f}/{100*mix['c59']/R:.0f}/{100*mix['big']/R:.0f}/{100*mix['oth']/R:.0f}%, "
       f"ref-equiv/GPU {req:.3e}, units/s {n/W:.0f}, engines {eng}, CPU {cores:.1f} cores, throttled {thr}, GPU busy/MHz/C " + ' '.join(gs))
 print(line)
 for a in alerts: print('ALERT',a)

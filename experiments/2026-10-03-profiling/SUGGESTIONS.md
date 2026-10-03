@@ -431,3 +431,23 @@ GPU busy/MHz/C are per-GPU means over the window.
     0.118-0.121, in line with the planner's 0.357/h average for hours 2-3.
   - 16 engines throughout; GPUs 99-100% at 550 W; 0 throttled periods; CPU 51-54 cores;
     clocks drifting down ~10 MHz per hour (2143-2315 MHz); temperatures 78-90 C, flat.
+- watchdog restarted 20:55 UTC (60 min). Fixes: MOD >= 2.6e15 counted separately at cost 1.70; tailer and sampler run 4200 s, longer than the loop.
+- 21:06 UTC [10 min]: 8.530e+11 res/s, E58/h 0.357, E58/1e15res 0.116, mix ref/59|K/big/other 27/49/15/9%, ref-equiv/GPU 1.414e+11, units/s 57, engines 16, CPU 53.7 cores, throttled 0, GPU busy/MHz/C 0:100%/2148/87C 1:100%/2209/89C 2:99%/2194/85C 3:100%/2285/79C 4:100%/2184/88C 5:100%/2154/90C 6:100%/2187/90C 7:100%/2171/86C
+- 21:16 UTC [10 min]: 8.499e+11 res/s, E58/h 0.352, E58/1e15res 0.115, mix ref/59|K/big/other 27/48/16/9%, ref-equiv/GPU 1.411e+11, units/s 56, engines 16, CPU 53.8 cores, throttled 0, GPU busy/MHz/C 0:100%/2136/88C 1:99%/2207/89C 2:100%/2199/86C 3:100%/2292/79C 4:100%/2189/88C 5:100%/2149/90C 6:100%/2178/90C 7:100%/2164/86C
+- 21:27 UTC [10 min]: 8.351e+11 res/s, E58/h 0.342, E58/1e15res 0.114, mix ref/59|K/big/other 27/48/16/9%, ref-equiv/GPU 1.386e+11, units/s 55, engines 16, CPU 54.0 cores, throttled 0, GPU busy/MHz/C 0:100%/2158/87C 1:100%/2217/89C 2:99%/2212/85C 3:99%/2288/78C 4:99%/2195/88C 5:99%/2161/90C 6:99%/2188/90C 7:100%/2178/85C
+- 21:38 UTC [10 min]: 8.068e+11 res/s, E58/h 0.326, E58/1e15res 0.112, mix ref/59|K/big/other 27/48/16/9%, ref-equiv/GPU 1.336e+11, units/s 54, engines 16, CPU 54.2 cores, throttled 0, GPU busy/MHz/C 0:100%/2154/87C 1:100%/2210/89C 2:100%/2199/85C 3:100%/2291/78C 4:100%/2182/88C 5:99%/2161/90C 6:99%/2196/90C 7:100%/2168/85C
+- 21:48 UTC [10 min]: 8.242e+11 res/s, E58/h 0.332, E58/1e15res 0.112, mix ref/59|K/big/other 26/47/17/9%, ref-equiv/GPU 1.375e+11, units/s 54, engines 16, CPU 54.8 cores, throttled 0, GPU busy/MHz/C 0:100%/2157/86C 1:100%/2221/88C 2:100%/2216/83C 3:99%/2292/77C 4:100%/2191/87C 5:100%/2160/89C 6:100%/2196/88C 7:100%/2169/83C
+- 21:59 UTC [10 min]: 8.274e+11 res/s, E58/h 0.332, E58/1e15res 0.111, mix ref/59|K/big/other 26/47/19/9%, ref-equiv/GPU 1.388e+11, units/s 52, engines 16, CPU 53.2 cores, throttled 0, GPU busy/MHz/C 0:99%/2153/87C 1:99%/2215/89C 2:99%/2203/84C 3:99%/2298/78C 4:100%/2199/88C 5:100%/2154/90C 6:99%/2203/89C 7:99%/2165/85C
+- Trend 20:56-21:59 (corrected script, all 6 samples complete): no alarm.
+  - res/s 8.53 -> 8.50 -> 8.35 -> 8.07 -> 8.24 -> 8.27e11, at a constant mix of 26-27% ref,
+    47-49% 59|K, 15-19% big, 9% other.
+  - ref-equiv/GPU 1.41 -> 1.41 -> 1.39 -> 1.34 -> 1.38 -> 1.39e11. The 21:38 dip was big-unit
+    lumpiness: 10-min windows aligned differently give 1.02-1.12e11 raw per GPU in every
+    window, and kern/wall per engine (attributed by completion) varies 0.82-1.02 while GPUs
+    stay 99-100% busy.
+  - E58/h 0.357 -> 0.352 -> 0.342 -> 0.326 -> 0.332 -> 0.332. E58 per 1e15 res fell
+    0.116 -> 0.111, which is the plan descending.
+  - Planner forecast for the cost-ranked plan: average 0.357/h over hours 2-3 and 0.305/h over
+    hours 4-6. At ~3.5 h into v3, 0.33 is on forecast.
+  - 16 engines; 0 throttled periods; CPU 53-55 cores; clocks 2149-2298 MHz and temperatures
+    77-90 C, both flat.
