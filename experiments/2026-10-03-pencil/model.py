@@ -5,10 +5,9 @@ All inputs are measured; nothing here is assumed.
   variant A  (M = 2*5*11*17*23*29 | d only)
      members(T) ~ 7.1e-7 T            (count.py, exact to 1e14)
      per-member success is NOT rho^41: 41, 47 and 53 are not in d, so every
-     member has ~3.2 non-automatic indices in their forced residue classes
-     where the term must be divisible by p^2.  Measured separately
-     (poison.log): clean-index rate rc, poisoned-index rate rp ~ 0.011,
-     P = rc^37.8 * rp^3.2, which is ~5e3 times smaller than rho^41.
+     member has ~3.3 non-automatic indices in their forced residue classes
+     where the term must be divisible by p^2 (rate ~rc/p, measured 0.0115).
+     P_A = rc^41 * E[prod_p (1/p)^{m_p}] = rc^41 * 9.967e-5 (poisondist.log).
 
   variant B  (M' = 2*5*11*17*23*29*41*47*53 | d)   <-- the better family
      members(T) ~ 5.38e-11 T          (variantB.log, exact to 1e16)
@@ -31,11 +30,15 @@ C_A = 7.1e-7
 RHO_A = [(1e10, 0.5565), (1e12, 0.5027), (1e14, 0.4647),
          (1e16, 0.4412), (1e18, 0.4130)]            # rates.log
 RC_A = [(1e12, 0.5486), (1e16, 0.4760), (1e18, 0.4495)]   # poison.log (clean)
-RP_A = 0.0115                                        # poison.log (poisoned)
-MPOIS = 3.2
+# P_A = rc^41 * E[prod_p (1/p)^{m_p}]; the expectation MUST be taken over the
+# distribution of the forced classes k0 = -a/d mod p, which is strongly
+# non-uniform.  Measured on 400k members (poisondist.log): 9.967e-5.
+# (Using the mean exponent instead -- rc^37.8 * 0.0115^3.2 -- is 13.6x too
+#  pessimistic; assuming uniform forced classes is 74x too optimistic.)
+E_POISON = 9.967e-5
 rho_A, _, _ = fit(RHO_A)
 rc_A, _, _ = fit(RC_A)
-def P_A(T): return rc_A(T)**(41-MPOIS) * RP_A**MPOIS
+def P_A(T): return rc_A(T)**41 * E_POISON
 
 # ---- variant B -------------------------------------------------------------
 C_B = 5.38e-11
@@ -70,7 +73,7 @@ if __name__ == "__main__":
     print()
     print("pentagonal 13-automatic family under the same model "
           "(members 9.8e-9 T, 45 non-automatic, 41/47/53 not in d either):")
-    Pp = lambda T: rc_A(T)**(45-MPOIS) * RP_A**MPOIS
+    Pp = lambda T: rc_A(T)**45 * E_POISON
     T = breakeven(9.8e-9, Pp)
     print(f"   E(1e20) = {9.8e-9*1e20*Pp(1e20):.2e}   break-even T* = {T:.2e}"
           f"   members to test = {1/Pp(T):.2e}")

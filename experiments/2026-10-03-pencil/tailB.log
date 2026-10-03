@@ -1,0 +1,17 @@
+variant B, T<=1e15, 150000 members, rho=0.48874
+tail of the non-automatic pass count: observed vs binomial(41,rho)
+  30/41  obs     429  exp     139.03  ratio 3.086
+  31/41  obs     183  exp      47.16  ratio 3.881
+  32/41  obs      54  exp      14.09  ratio 3.833
+  33/41  obs       4  exp       3.67  ratio 1.089
+  34/41  obs       0  exp       0.83  ratio 0.000
+  35/41  obs       0  exp       0.16  ratio 0.000
+  36/41  obs       0  exp       0.03  ratio 0.000
+  37/41  obs       0  exp       0.00  ratio 0.000
+  38/41  obs       0  exp       0.00  ratio 0.000
+  39/41  obs       0  exp       0.00  ratio 0.000
+  40/41  obs       0  exp       0.00  ratio 0.000
+  41/41  obs       0  exp       0.00  ratio 0.000
+   0.00  ratio 0.000
+  40/41  obs       0  exp       0.00  ratio 0.000
+  41/41  obs       0  exp       0.00  ratio 0.000

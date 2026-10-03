@@ -1,0 +1,4 @@
+CONST = 2.54e-07 ; BASE_UNPINNED = -30.3795 (= 6.4e-14)
+measured log yield/residue  -  log(plan_units E58/residue):  mean +0.826 sd 0.283  (n=100)
+=> plan_units.py underestimates E58 by a factor 2.28  (+- 0.06, sem)
+   plan quoted E58=1.777 at 2e16 residues  ->  measured-calibration E58 = 4.06

@@ -1,0 +1,2 @@
+K=10050  shift=0 mean ln t=39.363 rho_model=0.7180 rho_meas(b2=10000)=0.7090+-0.0034 ratio 0.9875 (^58=0.48)
+K=33611  shift=4 mean ln t=41.024 rho_model=0.7037 rho_meas(b2=10000)=0.6948+-0.0034 ratio 0.9873 (^58=0.48)

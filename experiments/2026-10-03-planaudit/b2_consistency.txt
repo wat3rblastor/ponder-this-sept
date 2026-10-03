@@ -1,0 +1,5 @@
+cross-check: the observable M must not depend on the b2 used to measure it
+K=10050 shift=0: M(b2=200)=-35.289+-0.305  M(b2=10000)=-35.522+-0.286  diff -0.233
+K=33611 shift=4: M(b2=10000)=-36.638+-0.289 (not in the b2=200 sample)
+
+survivor rate per stage-1 residue: b2=200 -> 1.24-4.23 ; b2=10000 -> 2.8e-07

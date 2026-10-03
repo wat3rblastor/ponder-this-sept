@@ -1,0 +1,70 @@
+=== measured engine throughput (8 cores, nterms=58, report=30) ===
+residues processed      1.812e+10
+core-seconds            6092.1   wall 762s
+residues/s/core         2.975e+06
+residues/s (8 cores)    2.38e+07
+admissible windows      592070   = 3.267e-05 per residue
+windows/s (8 cores)     777.5
+
+=== measured per-term decay inside an admissible window ===
+q      = 0.64233 +- 0.00073   (mc_win, 426542 real AP terms, 4 K values)
+p_out  = 0.47238           (term just outside the sieved window)
+
+=== empirical tail histogram vs the Bernoulli(q) model ===
+   L  obs N(>=L)  pred N(>=L)  obs/pred   r=pred(L+1)/pred(L)
+  30          14        13.16      1.06                0.6247
+  31          11         8.22      1.34                0.6242
+  32           8         5.13      1.56                0.6236
+  33           5         3.20      1.56                0.6231
+  34           0         1.99      0.00                0.6225
+  35           0         1.24      0.00                0.6218
+  36           0         0.77      0.00                0.6212
+
+decay ratio r(L) = P(>=L+1)/P(>=L) across the extrapolation range:
+   L= 30  r=0.6247
+   L= 34  r=0.6225
+   L= 38  r=0.6197
+   L= 42  r=0.6160
+   L= 46  r=0.6108
+   L= 50  r=0.6031
+   L= 54  r=0.5903
+   L= 56  r=0.5803
+   L= 57  r=0.5737
+
+=== extrapolation to L = 58 ===
+P(all 58 in-window Loeschian)  = q^58            = 7.078e-12
+P(engine reports run >= 58)    = DP with extension = 2.115e-11   (2.99x q^58)
+58-term solutions per second (8 laptop cores) = 1.644e-08
+58-term solutions per laptop-core-hour        = 7.4e-06
+EXPECTED WALL-CLOCK, this laptop              = 1.689e+04 hours  = 1.93 years
+
+  q+1sigma: q=0.64306 -> 1.588e+04 hours
+  q-1sigma: q=0.64159 -> 1.797e+04 hours
+
+  q fitted from the engine's own N(>=30)=14: q_fit=0.6438  (Poisson 1sigma on the count = 27% -> dq/q = 0.89%)
+    q_fit+1sigma = 0.6495 -> 9236 hours
+    q_fit-1sigma = 0.6380 -> 2.431e+04 hours
+
+=== cross-check against the 8x RTX PRO 6000 datapoint ===
+GPU residues/s (given)            7.45e+11
+laptop windows per residue        3.267e-05  (measured)
+=> GPU windows/s                  2.434e+07
+=> predicted 58s per GPU-hour     1.853
+   claimed  58s per GPU-hour      0.4
+   ratio predicted/claimed        4.63
+laptop/GPU throughput ratio       3.195e-05
+=> laptop hours implied by the 0.4/h figure: 7.826e+04
+
+=== the planner's per-term rho vs measurement ===
+tools/plan_units.py (mathres) rho at ln t=40.4: 0.70898
+measured q                                      : 0.64233
+ratio (meas/planner) = 0.9060  -> ^58 = 0.00326
+=> if rho were right, N(>=30) would have been 202; observed 14.
+
+=== how much the engine tail alone constrains the answer ===
+observed cumulative decay 30->33: r_obs = (5/14)^(1/3) = 0.709
+model (r = q):                            0.624 per term
+  extrapolate P(>=33) by r=0.709^25 -> P(>=58)=1.59e-09 -> 225.3 laptop-hours
+  extrapolate P(>=33) by r=0.625^25 -> P(>=58)=6.58e-11 -> 5428 laptop-hours
+  extrapolate P(>=33) by r=0.600^25 -> P(>=58)=2.4e-11 -> 1.488e+04 laptop-hours
+  extrapolate P(>=33) by r=0.660^25 -> P(>=58)=2.58e-10 -> 1382 laptop-hours

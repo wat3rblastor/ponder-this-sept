@@ -1,0 +1,20 @@
+units measured: 100   median sigma(M) = 0.300   (score spread 2.92 log)
+  spearman(M, v_old       ) = +0.8814   pearson = +0.8996  sd(M - v_old) = 0.283
+  spearman(M, v_new       ) = +0.8922   pearson = +0.9078  sd(M - v_new) = 0.274
+  spearman(M, v_new_cudaw ) = +0.8837   pearson = +0.9012  sd(M - v_new_cudaw) = 0.281
+  OLS slope M on v_old: 1.007 +- 0.049
+  OLS slope M on v_new: 0.944 +- 0.044
+  pearson(residual M-v_new, shift  ) = +0.038
+  pearson(residual M-v_new, ln MOD ) = +0.015
+  pearson(residual M-v_new, ln res ) = +0.026
+  pearson(residual M-v_new, wbar   ) = +0.076
+  pearson(residual M-v_new, ln K   ) = +0.003
+
+measured yield of the best 10%% of the sampled residue budget:
+  ranked by v_old : units=22 residues=5.96e+11 measured_yield=0.0005064
+  ranked by v_new : units=22 residues=5.96e+11 measured_yield=0.0005064
+  ranked by M     : units=10 residues=5.96e+11 measured_yield=0.0005472
+  RATIO new/old = 1.000   (oracle M/old = 1.080)
+  at frac 0.2: ratio new/old = 1.108
+  at frac 0.3: ratio new/old = 1.084
+  at frac 0.5: ratio new/old = 1.003

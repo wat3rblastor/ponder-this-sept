@@ -1,0 +1,4 @@
+B=2000 lo=1e+15 hi=3e+15 tried=275847 accepted=60000 loeschian=20820 q=0.347000 sigma=0.001943 acceptrate=0.217512
+B=2000 lo=1e+16 hi=3e+16 tried=276829 accepted=60000 loeschian=20275 q=0.337917 sigma=0.001931 acceptrate=0.216740
+B=2000 lo=1e+17 hi=3e+17 tried=273166 accepted=60000 loeschian=19511 q=0.325183 sigma=0.001912 acceptrate=0.219647
+B=2000 lo=1e+18 hi=3e+18 tried=274566 accepted=60000 loeschian=18894 q=0.314900 sigma=0.001896 acceptrate=0.218527

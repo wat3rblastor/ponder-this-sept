@@ -1,0 +1,12 @@
+units 3000   spearman(v_old, v_new) = 0.999284
+v_old spread 3.37 log (= 29.0x)
+v_old - v_new: constant -30.423, sd 0.0588, worst unit 0.873 log (= 2.39x)
+  shift==0: n=509 sd 0.1265 worst 0.873
+  shift==None: n=3000 sd 0.0588 worst 0.873
+top    5% of residues: |old|=200 |new|=166  overlap 80.5%  model yield ratio new/old = 1.0045
+top   10% of residues: |old|=234 |new|=285  overlap 81.8%  model yield ratio new/old = 1.0029
+top   25% of residues: |old|=602 |new|=607  overlap 96.0%  model yield ratio new/old = 1.0003
+
+head of each ranking (K, shift):
+  old: [(2461, 0), (718, 0), (7383, 0), (2300, 0), (1593, 0), (6576, 0), (666, 0), (3984, 0)]
+  new: [(72, 0), (718, 0), (2461, 0), (707, 0), (1593, 0), (666, 0), (1772, 0), (3195, 0)]

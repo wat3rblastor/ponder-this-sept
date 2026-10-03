@@ -650,3 +650,49 @@ cost figures may be wrong too, and they are what say the laptop is ~1e8 short.
   worth ~2.5x; if the score shares the model's errors we are searching in the wrong order. Measure
   old vs corrected ranking against actual engine counts. WIN at >= 2x.
   `experiments/2026-10-03-planaudit`.
+
+### GOAL2 cycle 3 — audit our own numbers
+
+| # | hypothesis | verdict |
+|---|---|---|
+| H8 | measure the laptop cost empirically instead of from the model | **LOSS, mild** — ~1.7e4 laptop-hours (band 9e3–8e4), agrees with the 8-GPU figure within 4.6x |
+| H9 | the planner's ranking shares the model's errors | **LOSS** — corrected ranking gives 1.00x; ranking is not the problem |
+
+**H8's structural result: the decay is CONSTANT, and I had assumed it was not.** Inside an
+admissible window every term is already free of every bad prime <= 2000, and every bad prime > 2000
+exceeds 58, so it divides at most one of the 58 indices. The 58 events are therefore independent
+Bernoulli with one common `q`, measured directly on 426,542 real progression terms:
+**q = 0.64233 +/- 0.00073**. It predicts N(>=30) = 13.2 against 14 observed. So the extrapolation
+to n = 58 rests on a single parameter known to 0.11%, and the honest band is ~1 decade, not several.
+
+Three by-products worth keeping:
+- **A factor-2^58 trap.** Random integers free of bad primes <= 2000 give q = 0.325 — exactly half
+  of 0.642 — because `3|d` forces every term to be `1 mod 3` and the `2 mod 3` half can never be
+  Loeschian. Any cost model taking per-term density from unconditioned integers is wrong by 2^58.
+- The outward extension in stage 3 is worth **2.99x** at L = 58 (terms outside the sieved window
+  pass at 0.472, not q); ignoring it gives 5.0e4 hours instead of 1.7e4.
+- `experiments/2026-10-03-structure/mathres/plan_units.py` is ~300x optimistic in **absolute**
+  yield (rho 0.709 vs measured 0.642; it predicts N(>=30) = 202 where 14 were logged). Its unit
+  *rankings* are fine — H9 confirms that independently — but its absolute numbers are not.
+
+**H9's audit** found the production `tools/plan_units.py` shares none of the three model errors, by
+construction: its prime list is bad primes **> 58**, and every bad prime below 58 divides `D0`, so a
+`q < n` local factor is never needed. Real but small discrepancies: `wbar` is a CUDA-kernel artefact
+applied to a score that also drives the CPU engine (up to 2.39x on individual small-K shift-0 units,
+sd 0.059 plan-wide); terms evaluated at `a+(k+1)d`; coarse grids; hard-coded `ln T = 40.5`; and
+`MODCAP` defaults disagree between planner (2e15) and engines (2e16 in the scripts), where only
+2e16 makes the pin sets match. Spearman +0.881 (old) vs +0.892 (new); the top 10% of budget selects
+the same 22 units under either score; a perfect oracle gains 1.08x.
+
+**The laptop/GPU gap is throughput, not modelling.** Laptop/GPU ratio is 3.2e-5 — the 8-GPU rig is
+~31,000 laptops. That ratio, not the probability model, is what the arithmetic turns on.
+
+### Cycle 4 — the one open fork, and it is cheap
+
+H8 left a genuine 75x uncertainty it could not close. The structural model gives per-term decay
+r ~ 0.624 (=> 1.7e4 laptop-hours); the tail-only reading of the same 14 events gives
+(5/14)^(1/3) = 0.709 (=> **225 hours**), with r = 0.66 giving 1382. At 1.2 sigma on 14 events this
+is unresolvable with the data in hand, but at L = 34..38 the two differ by 3x–30x in count, so 25x
+more statistics separates them outright — about 8 laptop-hours of the *identical* command on fresh
+K ranges (K >= 30001; 20001..27010 is covered). Dispatched as `experiments/2026-10-04-decay`.
+It is simultaneously a real search run.
