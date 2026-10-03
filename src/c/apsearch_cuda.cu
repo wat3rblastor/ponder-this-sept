@@ -478,6 +478,77 @@ sieve_strided(const u64 *__restrict__ Rpre, const u64 *__restrict__ words,
     }
 }
 
+/* Variant 21: FLAT STRIDED. Same strided groups as variant 20, but each lane
+ * moves on to its next group the moment its own group dies, instead of the
+ * whole warp fetching rows until its slowest lane is done (about 2x the rows
+ * an average lane needs). The row index t is then lane-specific, so the
+ * per-row constants cannot come from the constant cache: they are packed
+ * into 32-byte Row records in device memory, U of them (one 128-byte cache
+ * line for U = 4) per batch. The batch itself is branch-free, so its
+ * U * NCH word loads are all in flight together. */
+struct Row { u32 rp, mag, k0, k1, k2, k3, off, pad; };
+template <int NCH, int U>
+__global__ void __launch_bounds__(256)
+sieve_fs(const u64 *__restrict__ Rpre, const u64 *__restrict__ words,
+         const Row *__restrict__ rows, Params P, u32 *cnt, u64 *hits)
+{
+    u32 gid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (gid >= P.nthreads) return;
+    u64 A1 = Rpre[gid], Ag = A1;
+    const u64 sG = P.s2 * NCH;
+    u32 i1 = 0, i2 = 0, t = 0;
+    u32 l0 = (u32)(Ag & 0xFFFF), l1 = (u32)((Ag >> 16) & 0xFFFF);
+    u32 l2 = (u32)((Ag >> 32) & 0xFFFF), l3 = (u32)(Ag >> 48);
+    u64 sito[NCH];
+    #pragma unroll
+    for (int c = 0; c < NCH; c++) sito[c] = ((u32)c < P.c2) ? ~0ULL : 0ULL;
+    const u32 ntc = P.ntc;
+    for (;;) {
+        const u64 *w[U];
+        #pragma unroll
+        for (int u = 0; u < U; u++) {
+            const Row rw = rows[t + u];
+            u32 x = l0 * rw.k0 + l1 * rw.k1 + l2 * rw.k2 + l3 * rw.k3;
+            u32 y = x - __umulhi(x, rw.mag) * rw.rp;
+            if (y >= rw.rp) y -= rw.rp;
+            if (y >= rw.rp) y -= rw.rp;
+            w[u] = words + rw.off + y;
+        }
+        u64 any = 0;
+        #pragma unroll
+        for (int c = 0; c < NCH; c++) {
+            u64 v = w[0][c];
+            #pragma unroll
+            for (int u = 1; u < U; u++) v &= w[u][c];
+            sito[c] &= v; any |= sito[c];
+        }
+        t += U;
+        if (any == 0ULL || t >= ntc) {
+            if (any != 0ULL) {
+                #pragma unroll
+                for (int c = 0; c < NCH; c++) {
+                    if (sito[c] != 0ULL) {
+                        u32 sidx = atomicAdd(cnt, 1u);
+                        if (sidx < P.cap) { hits[2 * sidx] = Ag + (u64)c * P.s2; hits[2 * sidx + 1] = sito[c]; }
+                    }
+                }
+            }
+            i2 += NCH;
+            if (i2 < P.c2) Ag += sG;
+            else {
+                i2 = 0;
+                if (++i1 >= P.c1) break;
+                A1 += P.s1; Ag = A1;
+            }
+            t = 0;
+            l0 = (u32)(Ag & 0xFFFF); l1 = (u32)((Ag >> 16) & 0xFFFF);
+            l2 = (u32)((Ag >> 32) & 0xFFFF); l3 = (u32)(Ag >> 48);
+            #pragma unroll
+            for (int c = 0; c < NCH; c++) sito[c] = (i2 + c < P.c2) ? ~0ULL : 0ULL;
+        }
+    }
+}
+
 /* ------------------------------------------------------------------ host --- */
 
 struct comp { u64 m, s, t, c; };
@@ -502,7 +573,7 @@ int main(int argc, char **argv) {
     u64 shift0 = 0;
     u64 modcap = 2000000000000000ULL;
     int report = 44;
-    const char *out = NULL;
+    const char *out = NULL, *units_file = NULL;
     bool verify_mode = false, resume = false;
     int nomp = 0, kernel = 20;       /* strided groups; see the kernel comments for the measured ladder */
     u64 shbytes = 65536;
@@ -524,6 +595,7 @@ int main(int argc, char **argv) {
         else if (!strcmp(k, "--D0")) D0 = strtoull(NEXT(), NULL, 10);
         else if (!strcmp(k, "--threads")) nomp = atoi(NEXT());
         else if (!strcmp(k, "--kernel")) kernel = atoi(NEXT());
+        else if (!strcmp(k, "--units")) units_file = NEXT();
         else if (!strcmp(k, "--nch")) nch = atoi(NEXT());
         else if (!strcmp(k, "--unr")) unr = atoi(NEXT());
         else if (!strcmp(k, "--shbytes")) shbytes = strtoull(NEXT(), NULL, 10);
@@ -574,11 +646,14 @@ int main(int argc, char **argv) {
     cudaStream_t stream[2]; CK(cudaStreamCreate(&stream[0])); CK(cudaStreamCreate(&stream[1]));
     const u32 CAP = 1u << 18;
     u64 *d_R[2] = {NULL, NULL}, *d_W[2] = {NULL, NULL}, *d_H[2];
+    Row *d_C[2] = {NULL, NULL};
+    std::vector<Row> h_rows(MAXTC);
     u32 *d_cnt[2];
     size_t cap_R[2] = {0, 0}, cap_W[2] = {0, 0};
     for (int b = 0; b < 2; b++) {
         CK(cudaMalloc(&d_H[b], (size_t)CAP * 16));
         CK(cudaMalloc(&d_cnt[b], 4));
+        CK(cudaMalloc(&d_C[b], sizeof(Row) * MAXTC));
     }
     std::vector<u64> h_hits((size_t)CAP * 2);
     Unit inflight[2]; inflight[0].valid = inflight[1].valid = false;
@@ -701,8 +776,26 @@ int main(int argc, char **argv) {
         U.valid = false;
     };
 
+    /* work list: either the K range x shifts, or an explicit "K shift" file
+     * (tools/plan_units.py) consumed in order */
+    std::vector<std::pair<u64, u64> > ulist;
+    if (units_file) {
+        FILE *uf = fopen(units_file, "r");
+        if (!uf) { perror("open --units"); return 2; }
+        unsigned long long a_, b_;
+        while (fscanf(uf, "%llu %llu", &a_, &b_) == 2) ulist.push_back(std::make_pair((u64)a_, (u64)b_));
+        fclose(uf);
+        fprintf(stderr, "units: %zu from %s\n", ulist.size(), units_file);
+    } else {
+        for (u64 K = kmin; K <= kmax; K++)
+            for (u64 sh = shift0; sh < shift0 + shifts; sh++) ulist.push_back(std::make_pair(K, sh));
+    }
+    bool first_unit = true;
     int buf = 0;
-    for (u64 K = kmin; K <= kmax && !stop_requested; K++) {
+    for (size_t ui = 0; ui < ulist.size() && !stop_requested; ui++) {
+        const u64 K = ulist[ui].first;
+        shift0 = ulist[ui].second; shifts = 1;
+        if (!done_units.empty() && done_units.count(unit_key(K, shift0))) continue;
         double t_ks = lc_now_s();
         u64 d = K * D0;
         if (d / D0 != K) { fprintf(stderr, "K overflow at %llu\n", (unsigned long long)K); break; }
@@ -796,7 +889,7 @@ int main(int argc, char **argv) {
             if (!divD && (r % 3 != 2 || d % r == 0 || r <= nterms)) continue;
             /* strided kernel: a prime with s2 = 0 mod r has no rotation; drop it
              * from the GPU filter for this K (stage 3 is exact, so nothing is lost) */
-            if (kernel == 20 && sstep[in2] % r == 0) continue;
+            if (kernel >= 20 && sstep[in2] % r == 0) continue;
             tcp[ntc++] = r;
         }
         for (int i = 0; i < ntc; i++) {
@@ -809,9 +902,9 @@ int main(int argc, char **argv) {
             u64 tt = tcp[i]; tcp[i] = tcp[bj]; tcp[bj] = tt;
         }
         const int ntc_real = ntc;
-        if (kernel == 20) while (ntc % unr) tcp[ntc++] = 3;      /* all-ones dummy rows */
-        const u64 pad = (kernel == 20) ? (u64)(nch - 1) : 0;
-        if (kernel == 20) {
+        if (kernel >= 20) while (ntc % unr) tcp[ntc++] = 3;      /* all-ones dummy rows */
+        const u64 pad = (kernel >= 20) ? (u64)(nch - 1) : 0;
+        if (kernel >= 20) {
             u64 amax = MOD + (u64)C[in1].c * sstep[in1] + ((u64)C[in2].c + (u64)nch) * sstep[in2];
             if (b2 > 16383 || MOD >= (1ULL << 51) || amax < MOD) {
                 fprintf(stderr, "FATAL: strided kernel needs b2 <= 16383 and MOD < 2^51\n"); return 2; }
@@ -831,8 +924,8 @@ int main(int argc, char **argv) {
                 k2s[t] = (u32)(((u64)1 << 32) % r);
                 k3s[t] = (u32)(((u64)1 << 48) % r);
                 k0s[t] = 1;
-                if (kernel == 20 && t >= ntc_real) { k0s[t] = k1s[t] = k2s[t] = k3s[t] = 0; }
-                else if (kernel == 20) {     /* pre-multiply the fold by (s2 mod r)^-1 */
+                if (kernel >= 20 && t >= ntc_real) { k0s[t] = k1s[t] = k2s[t] = k3s[t] = 0; }
+                else if (kernel >= 20) {     /* pre-multiply the fold by (s2 mod r)^-1 */
                     u64 inv = lc_inv_mod(sstep[in2] % r, r);
                     k0s[t] = (u32)inv;
                     k1s[t] = (u32)((u64)k1s[t] * inv % r);
@@ -841,7 +934,8 @@ int main(int argc, char **argv) {
                 }
                 acc += r + pad;
             }
-            if (K == kmin) {
+            if (first_unit) {
+                first_unit = false;
                 /* magic-modulo self-check against %, for every prime, on a
                  * spread of x including the extremes of the fold range */
                 for (int t = 0; t < ntc; t++) {
@@ -883,7 +977,7 @@ int main(int argc, char **argv) {
                 u64 b0 = lc_mulmod(boff % r, modr, r);
                 std::vector<u64> tmp;
                 u64 *dst = &words[acc];
-                if (kernel == 20) { tmp.resize(r); dst = tmp.data(); }
+                if (kernel >= 20) { tmp.resize(r); dst = tmp.data(); }
                 for (u64 x = 0; x < r; x++) {
                     u64 w = 0, y = (x + b0) % r;
                     for (int b = 0; b < 64; b++) {
@@ -892,7 +986,7 @@ int main(int argc, char **argv) {
                     }
                     dst[x] = w;
                 }
-                if (kernel == 20) {          /* W'[y] = W[(y * s2) mod r], plus wrap pad */
+                if (kernel >= 20) {          /* W'[y] = W[(y * s2) mod r], plus wrap pad */
                     u64 s2r = sstep[in2] % r, x = 0;
                     for (u64 y = 0; y < r + pad; y++) {
                         words[acc + y] = tmp[x];
@@ -920,6 +1014,13 @@ int main(int argc, char **argv) {
             CK(cudaMemcpyAsync(d_R[buf], Rpre.data(), nthreads * 8, cudaMemcpyHostToDevice, stream[buf]));
             CK(cudaMemcpyAsync(d_W[buf], words.data(), tot_words * 8, cudaMemcpyHostToDevice, stream[buf]));
             CK(cudaMemsetAsync(d_cnt[buf], 0, 4, stream[buf]));
+            if (kernel == 21) {
+                for (int t = 0; t < ntc; t++) {
+                    Row r_; r_.rp = rps[t]; r_.mag = mags[t]; r_.k0 = k0s[t]; r_.k1 = k1s[t];
+                    r_.k2 = k2s[t]; r_.k3 = k3s[t]; r_.off = offs[t]; r_.pad = 0; h_rows[t] = r_;
+                }
+                CK(cudaMemcpyAsync(d_C[buf], h_rows.data(), sizeof(Row) * ntc, cudaMemcpyHostToDevice, stream[buf]));
+            }
             CK(cudaStreamSynchronize(stream[buf]));
             up_s = lc_now_s() - t_up;
             double t_wait = lc_now_s();
@@ -945,9 +1046,25 @@ int main(int argc, char **argv) {
             if (kernel == 1) {
                 if (ntc > MAXTC_SH) { fprintf(stderr, "FATAL: ntc > MAXTC_SH\n"); return 2; }
                 sieve_flat<<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
-            } else if (kernel == 20) {
+            } else if (kernel == 21) {
+                #define LF2(N, UU) sieve_fs<N, UU><<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], d_C[buf], P, d_cnt[buf], d_H[buf])
+                switch (nch * 10 + unr) {
+                    case 74: LF2(7, 4); break; case 54: LF2(5, 4); break; case 44: LF2(4, 4); break;
+                    case 64: LF2(6, 4); break; case 84: LF2(8, 4); break; case 72: LF2(7, 2); break;
+                    case 42: LF2(4, 2); break; case 34: LF2(3, 4); break; case 78: LF2(7, 8); break;
+                    case 48: LF2(4, 8); break; case 114: LF2(11, 4); break; case 24: LF2(2, 4); break;
+                    case 32: LF2(3, 2); break; case 22: LF2(2, 2); break; case 52: LF2(5, 2); break;
+                    case 82: LF2(8, 2); break; case 112: LF2(11, 2); break; case 142: LF2(14, 2); break;
+                    case 144: LF2(14, 4); break; case 71: LF2(7, 1); break; case 41: LF2(4, 1); break;
+                    default: fprintf(stderr, "bad --nch/--unr\n"); return 2;
+                }
+                #undef LF2
+            } else if (kernel >= 20) {
                 #define LS(N, UU) sieve_strided<N, UU><<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf])
                 switch (nch * 10 + unr) {
+                    case 75: LS(7, 5); break; case 76: LS(7, 6); break; case 78: LS(7, 8); break;
+                    case 64: LS(6, 4); break; case 54: LS(5, 4); break; case 94: LS(9, 4); break;
+                    case 66: LS(6, 6); break; case 56: LS(5, 6); break; case 58: LS(5, 8); break; case 68: LS(6, 8); break;
                     case 41: LS(4, 1); break; case 81: LS(8, 1); break; case 111: LS(11, 1); break;
                     case 141: LS(14, 1); break; case 191: LS(19, 1); break; case 281: LS(28, 1); break;
                     case 82: LS(8, 2); break; case 112: LS(11, 2); break; case 142: LS(14, 2); break;
