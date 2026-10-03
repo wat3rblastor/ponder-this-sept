@@ -29,8 +29,9 @@ setsid nohup tools/autopromote.sh 60 > /dev/null 2>&1 < /dev/null &
 
 - `tools/multi_gpu.sh` defaults are the validated production settings: `PPG=2` engines per GPU,
   CUDA MPS on (`MPS=0` to disable if the daemon cannot start), flags
-  `--kernel 31 --t0 24 --prep 8 --report 55`. Do **not** cap OpenMP threads (stage 3 needs ~25
-  cores per GPU; a cap of 8 was 3.8x slower). Use a NEW tag (`az1`) on a new machine.
+  `--kernel 31 --t0 24 --prep 8 --report 55`, `OMPT=8` exact-test threads per engine (since the
+  Montgomery stage 3 of 2026-10-03 the exact test is 6x cheaper; the old uncapped OpenMP team
+  oversubscribed the CPUs and starved the GPUs). Use a NEW tag (`az1`) on a new machine.
 - The kernel was tuned on RTX PRO 6000 Blackwell (sm_120): 7.45e11 residues/s on 8 GPUs
   (~9e10 per GPU). On a different GPU model `build_here.sh` prints the real figure; if kernel 31
   misbehaves there, `EXTRA="--kernel 20 --prep 8 --report 55"` is the older strided kernel.

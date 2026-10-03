@@ -108,84 +108,7 @@ static u64 pollard(u64 n) {
 
 /* ------------------------------------------- exact Loeschian test (stage 3) */
 
-/* Montgomery arithmetic for odd n < 2^64. The u128 % in mulmod() is a library
- * call (__umodti3); stage 3 became the bottleneck of the GPU engine on hosts
- * with slower cores, and Miller-Rabin / Pollard are nothing but modular
- * multiplications. mg_mul is two widening multiplies and no division. */
-typedef struct { u64 n, ni, one, r2; } mg_t;      /* ni = n^-1 mod 2^64 */
-static inline mg_t mg_make(u64 n) {
-    mg_t M; M.n = n;
-    u64 x = n;                                    /* Newton: 3 correct bits -> 96 */
-    x *= 2 - n * x; x *= 2 - n * x; x *= 2 - n * x; x *= 2 - n * x; x *= 2 - n * x;
-    M.ni = x;
-    M.one = (0 - n) % n;                          /* 2^64 mod n */
-    M.r2 = (u64)((u128)M.one * M.one % n);        /* 2^128 mod n */
-    return M;
-}
-static inline u64 mg_mul(u64 a, u64 b, const mg_t *M) {
-    u128 t = (u128)a * b;
-    u64 q = (u64)t * M->ni;
-    u64 hi = (u64)(t >> 64), mh = (u64)(((u128)q * M->n) >> 64);
-    return hi >= mh ? hi - mh : hi - mh + M->n;
-}
-
-/* Deterministic Miller-Rabin for odd n > 37 below 2^64 (7-base set of Sinclair). */
-static bool mg_is_prime(u64 n, const mg_t *M) {
-    static const u64 wit[] = {2, 325, 9375, 28178, 450775, 9780504, 1795265022};
-    u64 d = n - 1; int s = 0;
-    while (!(d & 1)) { d >>= 1; s++; }
-    const u64 one = M->one, mone = n - one;
-    for (int i = 0; i < 7; i++) {
-        u64 a = wit[i] % n;
-        if (!a) continue;
-        u64 b = mg_mul(a, M->r2, M), x = one, e = d;
-        while (e) { if (e & 1) x = mg_mul(x, b, M); b = mg_mul(b, b, M); e >>= 1; }
-        if (x == one || x == mone) continue;
-        int ok = 0;
-        for (int j = 1; j < s; j++) { x = mg_mul(x, x, M);
-            if (x == mone) { ok = 1; break; } }
-        if (!ok) return false;
-    }
-    return true;
-}
-
-/* Pollard-Brent with a batched gcd, in Montgomery form (n odd, composite).
- * x -> x^2 + c on Montgomery representatives is the same kind of random map;
- * differences and their product keep their gcd with n because 2^64 is a unit. */
-static u64 mg_pollard(u64 n, const mg_t *M) {
-    for (u64 c = 1;; c++) {
-        u64 y = 2, m = 128, g = 1, r = 1, q = M->one, x = 0, ys = 0;
-        #define MG_STEP(y_) do { y_ = mg_mul(y_, y_, M) + c; if (y_ < c || y_ >= n) y_ -= n; } while (0)
-        while (g == 1) {
-            x = y;
-            for (u64 i = 0; i < r; i++) MG_STEP(y);
-            for (u64 k = 0; k < r && g == 1; k += m) {
-                ys = y;
-                u64 lim = (m < r - k) ? m : r - k;
-                for (u64 i = 0; i < lim; i++) {
-                    MG_STEP(y);
-                    q = mg_mul(q, x > y ? x - y : y - x, M);
-                }
-                g = gcd_u64(q, n);
-            }
-            r *= 2;
-        }
-        if (g == n) {                     /* back off one step at a time */
-            g = 1;
-            y = ys;
-            while (g == 1) {
-                MG_STEP(y);
-                g = gcd_u64(x > y ? x - y : y - x, n);
-            }
-        }
-        #undef MG_STEP
-        if (g != n) return g;
-    }
-}
-
 static u32 *sp = NULL;        /* small primes for trial division */
-static u64 *sp_inv = NULL;    /* p^-1 mod 2^64 (odd p): t divisible by p  <=>  t * inv <= sp_lim */
-static u64 *sp_lim = NULL;    /* floor((2^64 - 1) / p) */
 static u64 n_sp = 0, sp_max = 0;
 
 static void build_small_primes(u64 limit) {
@@ -195,14 +118,7 @@ static void build_small_primes(u64 limit) {
     u64 cnt = 0;
     for (u64 i = 2; i <= limit; i++) if (!c[i]) cnt++;
     sp = malloc(cnt * sizeof(u32));
-    sp_inv = malloc(cnt * sizeof(u64));
-    sp_lim = malloc(cnt * sizeof(u64));
-    for (u64 i = 2; i <= limit; i++) if (!c[i]) {
-        u64 x = i;
-        x *= 2 - i * x; x *= 2 - i * x; x *= 2 - i * x; x *= 2 - i * x; x *= 2 - i * x;
-        sp_inv[n_sp] = x; sp_lim[n_sp] = ~(u64)0 / i;
-        sp[n_sp++] = (u32)i;
-    }
+    for (u64 i = 2; i <= limit; i++) if (!c[i]) sp[n_sp++] = (u32)i;
     sp_max = limit;
     free(c);
 }
@@ -220,10 +136,9 @@ static u64 isqrt_u64(u64 n) {
 static __thread int nfac;      /* thread-local: stage 3 runs under OpenMP in the CUDA engine */
 static __thread u64 fac[64];
 
-static void factor_rec(u64 n) {     /* n odd, every prime factor > 37 */
+static void factor_rec(u64 n) {
     if (n == 1) return;
-    mg_t M = mg_make(n);
-    if (mg_is_prime(n, &M)) { fac[nfac++] = n; return; }
+    if (is_prime_u64(n)) { fac[nfac++] = n; return; }
     u64 r = isqrt_u64(n);
     if (r * r == n) { factor_rec(r); factor_rec(r); return; }
     /* perfect cube (pollard-rho is unreliable on prime powers) */
@@ -232,30 +147,25 @@ static void factor_rec(u64 n) {     /* n odd, every prime factor > 37 */
         if (cc > 1 && cc * cc * cc == n) {
             factor_rec(cc); factor_rec(cc); factor_rec(cc); return;
         }
-    u64 f = mg_pollard(n, &M);
+    u64 f = pollard(n);
     factor_rec(f);
     factor_rec(n / f);
 }
 
 /* True iff t is Loeschian: every prime p = 2 (mod 3) divides t to an even
  * power. Exact for t < 2^64 -- this is the searcher's own test; src/verify.py
- * re-derives any hit independently in Python ints.
- * Requires build_small_primes(limit) with limit >= 37. */
+ * re-derives any hit independently in Python ints. */
 static bool is_loeschian(u64 t) {
     if (t == 0) return true;
-    {   int e = __builtin_ctzll(t);
-        if (e & 1) return false;
-        t >>= e; }
-    for (u64 i = 1; i < n_sp; i++) {             /* sp[0] = 2 is done */
+    for (u64 i = 0; i < n_sp; i++) {
         u32 p = sp[i];
         if ((u64)p * p > t) {
             /* what is left is 1 or a single prime */
             return (t == 1) ? true : (t % 3 != 2);
         }
-        u64 q = t * sp_inv[i];
-        if (q > sp_lim[i]) continue;             /* p does not divide t */
+        if (t % p) continue;
         int e = 0;
-        do { t = q; e++; q = t * sp_inv[i]; } while (q <= sp_lim[i]);
+        while (t % p == 0) { t /= p; e++; }
         if (p % 3 == 2 && (e & 1)) return false;
     }
     if (t == 1) return true;

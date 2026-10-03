@@ -14,6 +14,9 @@ cd "$(dirname "$0")/.." || exit 1
 PLAN=$1; TAG=$2
 GPUS=${GPUS:-$(nvidia-smi --query-gpu=index --format=csv,noheader | tr '\n' ' ')}
 PPG=${PPG:-2}
+# stage 3 (exact test, Montgomery since 2026-10-03) needs few cores; its worker thread ignores
+# --threads, and an uncapped OpenMP team (one thread per core, per engine) oversubscribed the box
+OMPT=${OMPT:-8}
 set -- $GPUS; NG=$#; N=$(( NG * PPG ))
 NCPU=$(nproc); TH=${TH:-$(( NCPU / N ))}; [ "$TH" -lt 2 ] && TH=2
 E=experiments/remote; mkdir -p $E

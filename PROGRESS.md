@@ -720,3 +720,26 @@ Still open, in priority order if cycle 4 lands on the pessimistic branch:
    `M(58)`; it is the cheapest remaining constraint on where the target region actually is.
 3. Submit the proved M(n) table to OEIS — no such sequence exists. Not progress toward n >= 58,
    but it is a real result this project produced and it should not be lost.
+
+---
+
+## 2026-10-03 17:35– UTC — back on 8x RTX PRO 6000 (Vast.ai, 2x EPYC 7742): run book relaunched, stage 3 rewritten
+
+GOAL2.md was removed at the user's instruction; GOAL.md's GPU run book is the plan again. Fresh
+plan (2e16 residues, E58 = 2.46 by the planner, finished units excluded), tag `v2`, 16 engines.
+
+**Throughput 6.15e11 -> 7.18e11 residues/s.** On this host the engines were CPU-bound, not
+GPU-bound: load average ~1600 on 256 logical cores, three GPUs idling at 0-40%, each engine's
+stage-3 worker busy 87-95% of wall time so launches blocked on the stage-3 queue. Two causes:
+(1) the exact test used `u128 %` (a library call) in Miller-Rabin and Pollard and 64-bit divides
+in trial division; (2) the stage-3 worker is a std::thread, so `--threads` does not reach it and
+every engine ran a 256-thread OpenMP team for a few thousand items per unit.
+Fix: `src/c/loesch_core.h` now does trial division by multiply-by-inverse, 7-base deterministic
+Miller-Rabin and Pollard-Brent in Montgomery form (**6.2x faster per call**, 38.4 -> 6.2 us on
+random 64-bit inputs under load), and `tools/multi_gpu.sh` defaults to `OMPT=8`.
+Validation: `experiments/2026-10-03-profiling/stage3/equiv.c` — 0 mismatches against the old
+test on every t <= 3e6, ~2e5 structured cases (p^2, p^3, p^4, pq, p^2 q, pqr near the trial
+bound, 2^32 and 2^64 edges) and 3e6 random; K=205 selftest still finds the 47; K=206 and K=531
+units give identical survivor/confirmed counts with the old and new binaries. After the restart
+all 8 GPUs sit at 100% / 550 W (power cap) and load average is ~115. This supersedes lesson (1)
+of the previous entry ("do not cap OpenMP threads").
