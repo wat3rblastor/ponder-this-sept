@@ -117,6 +117,226 @@ sieve(const u64 *__restrict__ Rpre, const u64 *__restrict__ words,
     }
 }
 
+
+/* Variant 1: FLAT chain. In the nested version a warp runs until its slowest
+ * lane's AND chain dies, so with an average chain of ~15 primes and a
+ * max-of-32 of ~40 most lanes idle most of the time. Here every lane walks
+ * its own residues and its own chain position t independently: when its
+ * word dies it immediately moves to its next residue and restarts at t = 0.
+ * The warp only synchronises on "all lanes finished". The price is that t is
+ * no longer warp-uniform, so per-prime constants come from shared memory
+ * (one 16-byte load per step) instead of the constant cache. */
+#define MAXTC_SH 1024
+__global__ void __launch_bounds__(256)
+sieve_flat(const u64 *__restrict__ Rpre, const u64 *__restrict__ words,
+           Params P, u32 *cnt, u64 *hits)
+{
+    __shared__ uint4 s_c[MAXTC_SH];     /* {rp | k1<<16, k2 | k3<<16, mag, off} */
+    for (u32 t = threadIdx.x; t < P.ntc; t += blockDim.x)
+        s_c[t] = make_uint4(c_rp[t] | (c_k1[t] << 16), c_k2[t] | (c_k3[t] << 16),
+                            c_mag[t], c_off[t]);
+    __syncthreads();
+    u32 gid = blockIdx.x * blockDim.x + threadIdx.x;
+    bool active = gid < P.nthreads;
+    u64 R = active ? Rpre[gid] : 0, Rb = R;
+    u32 i1 = 0, i2 = 0, t = 0;
+    u64 sito = ~0ULL;
+    u32 l0 = (u32)(Rb & 0xFFFF), l1 = (u32)((Rb >> 16) & 0xFFFF);
+    u32 l2 = (u32)((Rb >> 32) & 0xFFFF), l3 = (u32)(Rb >> 48);
+    const u32 ntc = P.ntc;
+    for (;;) {
+        if (active) {
+            uint4 c = s_c[t];
+            u32 p = c.x & 0xFFFF;
+            u32 x = l0 + l1 * (c.x >> 16) + l2 * (c.y & 0xFFFF) + l3 * (c.y >> 16);
+            u32 q = __umulhi(x, c.z);
+            u32 r = x - q * p;
+            if (r >= p) r -= p;
+            if (r >= p) r -= p;
+            sito &= words[c.w + r];
+            t++;
+            if (sito == 0ULL || t == ntc) {
+                if (sito != 0ULL) {
+                    u32 s = atomicAdd(cnt, 1u);
+                    if (s < P.cap) { hits[2 * s] = Rb; hits[2 * s + 1] = sito; }
+                }
+                /* next residue */
+                if (++i2 < P.c2) { Rb += P.s2; if (Rb >= P.MOD) Rb -= P.MOD; }
+                else {
+                    i2 = 0;
+                    if (++i1 < P.c1) { R += P.s1; if (R >= P.MOD) R -= P.MOD; Rb = R; }
+                    else active = false;
+                }
+                t = 0; sito = ~0ULL;
+                l0 = (u32)(Rb & 0xFFFF); l1 = (u32)((Rb >> 16) & 0xFFFF);
+                l2 = (u32)((Rb >> 32) & 0xFFFF); l3 = (u32)(Rb >> 48);
+            }
+        }
+        if (__all_sync(0xFFFFFFFFu, !active)) break;
+    }
+}
+
+/* Variant 2: nested chain, but the tables of the first `nsh` tier-C primes
+ * (in kill order, i.e. the ones nearly every chain step touches) live in
+ * shared memory. A warp's 32 random 8-byte gathers into a 1-3 KB table cost
+ * ~14 L1 wavefronts from global/L1 but only a few bank-conflict cycles from
+ * shared memory. */
+__global__ void __launch_bounds__(256)
+sieve_sh(const u64 *__restrict__ Rpre, const u64 *__restrict__ words,
+         Params P, u32 nsh, u32 nshw, u32 *cnt, u64 *hits)
+{
+    extern __shared__ u64 s_w[];
+    for (u32 i = threadIdx.x; i < nshw; i += blockDim.x) s_w[i] = words[i];
+    __syncthreads();
+    u32 gid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (gid >= P.nthreads) return;
+    u64 R = Rpre[gid];
+    for (u32 i1 = 0; i1 < P.c1; ++i1) {
+        u64 Rb = R;
+        for (u32 i2 = 0; i2 < P.c2; ++i2) {
+            u32 l0 = (u32)(Rb & 0xFFFF);
+            u32 l1 = (u32)((Rb >> 16) & 0xFFFF);
+            u32 l2 = (u32)((Rb >> 32) & 0xFFFF);
+            u32 l3 = (u32)(Rb >> 48);
+            u64 sito = ~0ULL;
+            u32 t = 0;
+            for (; t < nsh; ++t) {
+                u32 x = l0 + l1 * c_k1[t] + l2 * c_k2[t] + l3 * c_k3[t];
+                u32 p = c_rp[t];
+                u32 q = __umulhi(x, c_mag[t]);
+                u32 r = x - q * p;
+                if (r >= p) r -= p;
+                if (r >= p) r -= p;
+                sito &= s_w[c_off[t] + r];
+                if (sito == 0ULL) break;
+            }
+            if (sito != 0ULL) {
+                for (t = nsh; t < P.ntc; ++t) {
+                    u32 x = l0 + l1 * c_k1[t] + l2 * c_k2[t] + l3 * c_k3[t];
+                    u32 p = c_rp[t];
+                    u32 q = __umulhi(x, c_mag[t]);
+                    u32 r = x - q * p;
+                    if (r >= p) r -= p;
+                    if (r >= p) r -= p;
+                    sito &= words[c_off[t] + r];
+                    if (sito == 0ULL) break;
+                }
+                if (sito != 0ULL) {
+                    u32 s = atomicAdd(cnt, 1u);
+                    if (s < P.cap) { hits[2 * s] = Rb; hits[2 * s + 1] = sito; }
+                }
+            }
+            Rb += P.s2; if (Rb >= P.MOD) Rb -= P.MOD;
+        }
+        R += P.s1; if (R >= P.MOD) R -= P.MOD;
+    }
+}
+
+/* Variant 3: two independent chains per thread (residues i2 and i2+1 of the
+ * innermost loop walk together). Each chain step is a dependent L1 load, so
+ * a single chain per thread leaves the SM waiting on latency; two chains
+ * double the loads in flight per warp at the cost of ~12 registers. */
+__global__ void __launch_bounds__(256)
+sieve_ilp2(const u64 *__restrict__ Rpre, const u64 *__restrict__ words,
+           Params P, u32 *cnt, u64 *hits)
+{
+    u32 gid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (gid >= P.nthreads) return;
+    u64 R = Rpre[gid];
+    const u64 s2x2 = (P.s2 * 2 >= P.MOD) ? P.s2 * 2 - P.MOD : P.s2 * 2;
+    for (u32 i1 = 0; i1 < P.c1; ++i1) {
+        u64 Ra = R;
+        u64 Rb = Ra + P.s2; if (Rb >= P.MOD) Rb -= P.MOD;
+        for (u32 i2 = 0; i2 < P.c2; i2 += 2) {
+            const bool two = (i2 + 1 < P.c2);
+            u32 a0 = (u32)(Ra & 0xFFFF), a1 = (u32)((Ra >> 16) & 0xFFFF);
+            u32 a2 = (u32)((Ra >> 32) & 0xFFFF), a3 = (u32)(Ra >> 48);
+            u32 b0 = (u32)(Rb & 0xFFFF), b1 = (u32)((Rb >> 16) & 0xFFFF);
+            u32 b2 = (u32)((Rb >> 32) & 0xFFFF), b3 = (u32)(Rb >> 48);
+            u64 sa = ~0ULL, sb = two ? ~0ULL : 0ULL;
+            for (u32 t = 0; t < P.ntc; ++t) {
+                u32 k1 = c_k1[t], k2 = c_k2[t], k3 = c_k3[t], p = c_rp[t], m = c_mag[t], o = c_off[t];
+                u32 xa = a0 + a1 * k1 + a2 * k2 + a3 * k3;
+                u32 xb = b0 + b1 * k1 + b2 * k2 + b3 * k3;
+                u32 ra = xa - __umulhi(xa, m) * p;
+                u32 rb = xb - __umulhi(xb, m) * p;
+                if (ra >= p) ra -= p;
+                if (ra >= p) ra -= p;
+                if (rb >= p) rb -= p;
+                if (rb >= p) rb -= p;
+                u64 wa = words[o + ra], wb = words[o + rb];
+                sa &= wa; sb &= wb;
+                if ((sa | sb) == 0ULL) break;
+            }
+            if (sa != 0ULL) {
+                u32 s = atomicAdd(cnt, 1u);
+                if (s < P.cap) { hits[2 * s] = Ra; hits[2 * s + 1] = sa; }
+            }
+            if (sb != 0ULL) {
+                u32 s = atomicAdd(cnt, 1u);
+                if (s < P.cap) { hits[2 * s] = Rb; hits[2 * s + 1] = sb; }
+            }
+            Ra += s2x2; if (Ra >= P.MOD) Ra -= P.MOD;
+            Rb += s2x2; if (Rb >= P.MOD) Rb -= P.MOD;
+        }
+        R += P.s1; if (R >= P.MOD) R -= P.MOD;
+    }
+}
+
+/* Variant 4+: NCH independent chains per thread (template), the generalisation
+ * of sieve_ilp2. Chains are residues i2, i2+1, ..., i2+NCH-1 of the innermost
+ * loop; the AND-chain loop runs until every chain's word is zero. */
+template <int NCH>
+__global__ void __launch_bounds__(256)
+sieve_ilpN(const u64 *__restrict__ Rpre, const u64 *__restrict__ words,
+           Params P, u32 *cnt, u64 *hits)
+{
+    u32 gid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (gid >= P.nthreads) return;
+    u64 R = Rpre[gid];
+    u64 sN = 0;                                  /* NCH * s2 mod MOD */
+    for (int c = 0; c < NCH; c++) { sN += P.s2; if (sN >= P.MOD) sN -= P.MOD; }
+    for (u32 i1 = 0; i1 < P.c1; ++i1) {
+        u64 Rc[NCH];
+        Rc[0] = R;
+        #pragma unroll
+        for (int c = 1; c < NCH; c++) { Rc[c] = Rc[c - 1] + P.s2; if (Rc[c] >= P.MOD) Rc[c] -= P.MOD; }
+        for (u32 i2 = 0; i2 < P.c2; i2 += NCH) {
+            u32 L0[NCH], L1[NCH], L2[NCH], L3[NCH];
+            u64 sito[NCH];
+            #pragma unroll
+            for (int c = 0; c < NCH; c++) {
+                L0[c] = (u32)(Rc[c] & 0xFFFF); L1[c] = (u32)((Rc[c] >> 16) & 0xFFFF);
+                L2[c] = (u32)((Rc[c] >> 32) & 0xFFFF); L3[c] = (u32)(Rc[c] >> 48);
+                sito[c] = (i2 + c < P.c2) ? ~0ULL : 0ULL;
+            }
+            for (u32 t = 0; t < P.ntc; ++t) {
+                u32 k1 = c_k1[t], k2 = c_k2[t], k3 = c_k3[t], p = c_rp[t], m = c_mag[t], o = c_off[t];
+                u64 any = 0;
+                #pragma unroll
+                for (int c = 0; c < NCH; c++) {
+                    u32 x = L0[c] + L1[c] * k1 + L2[c] * k2 + L3[c] * k3;
+                    u32 r = x - __umulhi(x, m) * p;
+                    if (r >= p) r -= p;
+                    if (r >= p) r -= p;
+                    sito[c] &= words[o + r];
+                    any |= sito[c];
+                }
+                if (any == 0ULL) break;
+            }
+            #pragma unroll
+            for (int c = 0; c < NCH; c++) {
+                if (sito[c] != 0ULL) {
+                    u32 s = atomicAdd(cnt, 1u);
+                    if (s < P.cap) { hits[2 * s] = Rc[c]; hits[2 * s + 1] = sito[c]; }
+                }
+                Rc[c] += sN; if (Rc[c] >= P.MOD) Rc[c] -= P.MOD;
+            }
+        }
+        R += P.s1; if (R >= P.MOD) R -= P.MOD;
+    }
+}
+
 /* ------------------------------------------------------------------ host --- */
 
 struct comp { u64 m, s, t, c; };
@@ -143,7 +363,8 @@ int main(int argc, char **argv) {
     int report = 44;
     const char *out = NULL;
     bool verify_mode = false, resume = false;
-    int nomp = 0;
+    int nomp = 0, kernel = 4;        /* 4 chains per thread: 2.7x the single-chain kernel */
+    u64 shbytes = 65536;
 
     for (int i = 1; i < argc; i++) {
         const char *k = argv[i];
@@ -159,6 +380,8 @@ int main(int argc, char **argv) {
         else if (!strcmp(k, "--out")) out = NEXT();
         else if (!strcmp(k, "--D0")) D0 = strtoull(NEXT(), NULL, 10);
         else if (!strcmp(k, "--threads")) nomp = atoi(NEXT());
+        else if (!strcmp(k, "--kernel")) kernel = atoi(NEXT());
+        else if (!strcmp(k, "--shbytes")) shbytes = strtoull(NEXT(), NULL, 10);
         else if (!strcmp(k, "--verify")) verify_mode = true;
         else if (!strcmp(k, "--resume")) resume = true;
         else { fprintf(stderr, "unknown arg %s\n", k); return 2; }
@@ -197,6 +420,12 @@ int main(int argc, char **argv) {
     int dev = 0; cudaDeviceProp prop; CK(cudaGetDeviceProperties(&prop, dev));
     fprintf(stderr, "GPU: %s (SMs=%d, cc %d.%d) omp_threads=%d\n", prop.name,
             prop.multiProcessorCount, prop.major, prop.minor, omp_get_max_threads());
+    {
+        int maxsh = 0; CK(cudaDeviceGetAttribute(&maxsh, cudaDevAttrMaxSharedMemoryPerBlockOptin, dev));
+        if (shbytes > (u64)maxsh) shbytes = (u64)maxsh;
+        CK(cudaFuncSetAttribute(sieve_sh, cudaFuncAttributeMaxDynamicSharedMemorySize, (int)shbytes));
+        fprintf(stderr, "shared memory per block: %d max, using %llu\n", maxsh, (unsigned long long)shbytes);
+    }
     cudaStream_t stream[2]; CK(cudaStreamCreate(&stream[0])); CK(cudaStreamCreate(&stream[1]));
     const u32 CAP = 1u << 18;
     u64 *d_R[2] = {NULL, NULL}, *d_W[2] = {NULL, NULL}, *d_H[2];
@@ -246,7 +475,8 @@ int main(int argc, char **argv) {
         u64 nconf = 0, nbits = 0;
         u64 boff = U.shift * 64, d = U.d, MOD = U.MOD;
         std::vector<Hit> hits;
-        #pragma omp parallel for schedule(dynamic, 4) reduction(+:nconf, nbits)
+        u64 hist[64]; memset(hist, 0, sizeof hist);   /* best run per window, after extension */
+        #pragma omp parallel for schedule(dynamic, 4) reduction(+:nconf, nbits) reduction(+:hist[:64])
         for (u32 s = 0; s < nsurv; s++) {
             u64 Rb = h_hits[2 * s], sito = h_hits[2 * s + 1];
             while (sito) {
@@ -254,9 +484,7 @@ int main(int argc, char **argv) {
                 nbits++;
                 u64 a0 = Rb + (boff + (u64)bb) * MOD;
                 u64 best_run = 0, best_start = 0, cur = 0, cur_start = 0;
-                u64 want = (report > 1) ? (u64)report : 1;
                 for (u64 kk = 0; kk < nterms; kk++) {
-                    if (cur + (nterms - kk) < want) break;
                     u64 t2 = a0 + kk * d;
                     if (t2 < a0) break;
                     if (lc_is_loeschian(t2)) {
@@ -271,6 +499,7 @@ int main(int argc, char **argv) {
                 while (a >= d && lc_is_loeschian(a - d)) { a -= d; run++; }
                 for (;;) { u64 t2 = a + run * d;
                     if (t2 < a || !lc_is_loeschian(t2)) break; run++; }
+                hist[run < 63 ? run : 63]++;
                 #pragma omp critical
                 {
                     if ((int)run > global_best) {
@@ -309,6 +538,10 @@ int main(int argc, char **argv) {
                     (unsigned long long)U.K, (unsigned long long)U.shift,
                     (double)U.total, nsurv, (unsigned long long)nconf, global_best,
                     gpu_s, cpu_s, covered, overflow ? "true" : "false");
+            fprintf(of, "{\"hist\":true,\"K\":%llu,\"shift\":%llu,\"runs\":[",
+                    (unsigned long long)U.K, (unsigned long long)U.shift);
+            for (int i = 0; i < 64; i++) fprintf(of, "%s%llu", i ? "," : "", (unsigned long long)hist[i]);
+            fprintf(of, "]}\n");
             fflush(of);
         }
         if (verify_mode)
@@ -517,7 +750,25 @@ int main(int argc, char **argv) {
             U.nthreads = nthreads; U.ntc = ntc; U.valid = true;
             U.t_launch = lc_now_s();
             u32 blocks = (u32)((nthreads + 255) / 256);
-            sieve<<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
+            if (kernel == 1) {
+                if (ntc > MAXTC_SH) { fprintf(stderr, "FATAL: ntc > MAXTC_SH\n"); return 2; }
+                sieve_flat<<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
+            } else if (kernel == 4) {
+                sieve_ilpN<4><<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
+            } else if (kernel == 5) {
+                sieve_ilpN<8><<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
+            } else if (kernel == 6) {
+                sieve_ilpN<3><<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
+            } else if (kernel == 7) {
+                sieve_ilpN<6><<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
+            } else if (kernel == 3) {
+                sieve_ilp2<<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
+            } else if (kernel == 2) {
+                u32 nsh = 0, nshw = 0;
+                while (nsh < (u32)ntc && (nshw + rps[nsh]) * 8 <= shbytes) { nshw += rps[nsh]; nsh++; }
+                sieve_sh<<<blocks, 256, nshw * 8, stream[buf]>>>(d_R[buf], d_W[buf], P, nsh, nshw, d_cnt[buf], d_H[buf]);
+            } else
+                sieve<<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
             CK(cudaGetLastError());
             CK(cudaEventRecord(U.done, stream[buf]));
             buf ^= 1;
