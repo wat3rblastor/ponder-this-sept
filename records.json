@@ -198,6 +198,15 @@
       "d_factored": "2 * 3^2 * 5 * 11 * 17^2 * 23 * 29 * 41 * 47^2 * 53 * 59",
       "verified": true,
       "maximal_both_ends": true
+    },
+    {
+      "a": 2126918320989524407,
+      "d": 114225607507983180,
+      "n": 55,
+      "last": 8295101126420616127,
+      "d_factored": "2^2 * 3 * 5 * 11 * 17^2 * 23 * 29 * 41 * 47 * 53 * 59 * 149",
+      "verified": true,
+      "maximal_both_ends": true
     }
   ],
   "g3_copies_55plus": [
