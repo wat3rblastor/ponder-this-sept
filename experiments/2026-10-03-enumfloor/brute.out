@@ -1,0 +1,37 @@
+d=382160924970     X=2000000   Q=59,71,83                     split=None brute=1865    enum=1865    MATCH
+d=382160924970     X=2000000   Q=59,71,83                     split=0    brute=1865    enum=1865    MATCH
+d=382160924970     X=2000000   Q=59,71,83                     split=1    brute=1865    enum=1865    MATCH
+d=382160924970     X=2000000   Q=59,71,83                     split=2    brute=1865    enum=1865    MATCH
+d=382160924970     X=2000000   Q=59,71,83                     split=3    brute=1865    enum=1865    MATCH
+    out=1865 cand=1865 sec=0.000 cand_per_out=1.0000 ns_per_out=69.17 expected_out=1869.5 verified=1865 badver=0
+d=382160924970     X=2000000   Q=59,71,83,89                  split=None brute=650     enum=650     MATCH
+d=382160924970     X=2000000   Q=59,71,83,89                  split=0    brute=650     enum=650     MATCH
+d=382160924970     X=2000000   Q=59,71,83,89                  split=1    brute=650     enum=650     MATCH
+d=382160924970     X=2000000   Q=59,71,83,89                  split=2    brute=650     enum=650     MATCH
+d=382160924970     X=2000000   Q=59,71,83,89                  split=3    brute=650     enum=650     MATCH
+    out=650 cand=1865 sec=0.000 cand_per_out=2.8692 ns_per_out=104.62 expected_out=651.173 verified=650 badver=0
+d=382160924970     X=20000000  Q=59,71,83,89,101              split=None brute=2781    enum=2781    MATCH
+d=382160924970     X=20000000  Q=59,71,83,89,101              split=0    brute=2781    enum=2781    MATCH
+d=382160924970     X=20000000  Q=59,71,83,89,101              split=1    brute=2781    enum=2781    MATCH
+d=382160924970     X=20000000  Q=59,71,83,89,101              split=2    brute=2781    enum=2781    MATCH
+d=382160924970     X=20000000  Q=59,71,83,89,101              split=3    brute=2781    enum=2781    MATCH
+    out=2781 cand=18693 sec=0.001 cand_per_out=6.7217 ns_per_out=183.75 expected_out=2772.32 verified=2781 badver=0
+d=382160924970     X=20000000  Q=59,71,83,89,101,107,113      split=None brute=639     enum=639     MATCH
+d=382160924970     X=20000000  Q=59,71,83,89,101,107,113      split=0    brute=639     enum=639     MATCH
+d=382160924970     X=20000000  Q=59,71,83,89,101,107,113      split=1    brute=639     enum=639     MATCH
+d=382160924970     X=20000000  Q=59,71,83,89,101,107,113      split=2    brute=639     enum=639     MATCH
+d=382160924970     X=20000000  Q=59,71,83,89,101,107,113      split=3    brute=639     enum=639     MATCH
+    out=639 cand=18693 sec=0.000 cand_per_out=29.2535 ns_per_out=591.55 expected_out=617.931 verified=639 badver=0
+d=2675126474790    X=20000000  Q=59,71,83,89,101,107,113      split=None brute=670     enum=670     MATCH
+d=2675126474790    X=20000000  Q=59,71,83,89,101,107,113      split=0    brute=670     enum=670     MATCH
+d=2675126474790    X=20000000  Q=59,71,83,89,101,107,113      split=1    brute=670     enum=670     MATCH
+d=2675126474790    X=20000000  Q=59,71,83,89,101,107,113      split=2    brute=670     enum=670     MATCH
+d=2675126474790    X=20000000  Q=59,71,83,89,101,107,113      split=3    brute=670     enum=670     MATCH
+    out=670 cand=18694 sec=0.000 cand_per_out=27.9015 ns_per_out=662.69 expected_out=617.931 verified=670 badver=0
+d=471803266657437990 X=5000000   Q=59,71,83,89,101,107,113,131,137 split=None brute=49      enum=49      MATCH
+d=471803266657437990 X=5000000   Q=59,71,83,89,101,107,113,131,137 split=0    brute=49      enum=49      MATCH
+d=471803266657437990 X=5000000   Q=59,71,83,89,101,107,113,131,137 split=1    brute=49      enum=49      MATCH
+d=471803266657437990 X=5000000   Q=59,71,83,89,101,107,113,131,137 split=2    brute=49      enum=49      MATCH
+d=471803266657437990 X=5000000   Q=59,71,83,89,101,107,113,131,137 split=3    brute=49      enum=49      MATCH
+    out=49 cand=4673 sec=0.000 cand_per_out=95.3673 ns_per_out=2367.35 expected_out=49.6407 verified=49 badver=0
+FAILURES: 0

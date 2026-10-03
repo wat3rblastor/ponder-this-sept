@@ -546,3 +546,51 @@ and the rule that a clean negative goes in the first line.
   Pose the problem as: 58 numbers in AP whose squarefree kernels avoid a fixed prime set. Fixing
   kernels for a subset of indices gives an overdetermined system on `(a,d)` — how many indices can
   be fixed before it has no solutions, and what does the boundary case look like?
+
+### GOAL2 cycle 1 — verdicts
+
+| # | hypothesis | verdict | what it changed |
+|---|---|---|---|
+| H1 | enumerator term-size floor | **WIN on threshold, small in practice** | 1.02 work units per admissible `a` emitted (threshold was <100), verified against brute force on 30 configurations, 45M values independently re-checked. But supply-capped: the 497x per-work edge collapses to 1.6x once enough candidates are needed. Free 1.46x available today by pinning 131 in the wheel. |
+| H2 | automatic-terms covering | **LOSS, with the best structure of the cycle** | max automatic coverage is **17**, at any size |
+| H3 | forensics on known solutions | **clean LOSS, well powered** | long progressions are indistinguishable from random admissible ones (16 features, all within 1.06x of a matched control, 3486 real terms vs 7320) |
+| H4 | attack the register | (running) | |
+
+**H1's structural result, which reverses the engine's design order.** Pinning an extra prime `q`
+costs `q/(q-58)` in enumeration and gains `((q+1)/q)^58` in pass probability. Both are
+`1 + 58/q + O(1/q²)` — they cancel (measured 6.99x cost vs 6.90x gain, 1.3% apart); at second
+order cost wins, so filtered pins are a **net loss**. The pin set is therefore nearly irrelevant
+and **the only lever is term size**. Rule: choose the term budget first, pin exactly what fits
+free in the wheel (`prod Q <= X`), filter nothing.
+
+**H2's classification.** A term is free only if `a+kd = L1² + 3L2²` identically, so `a` and `d`
+are binary quadratic forms and the whole automatic set is governed by ONE quadratic
+`P(k) = -disc(a+kd)/12`, with `A = {k in [0,57] : P(k) a perfect square}`. Regimes:
+`α = 0` (P linear) is *all* the known theory and caps at 13; `α > 0` (Pell conic) reaches 15;
+`α < 0` (ellipse) reaches **17** — both new and never exploited. Coverage frontier (min T):
+10-12 → 7.1e7, 13-14 → 2.9e9, 15-16 → 3.8e9, 17 → 7.3e12, 18+ → nothing at any size.
+
+**H2's other result: bad primes cannot be parked on automatic indices.** A bad prime divides
+`X²+3Y²` only if it divides both `X` and `Y`, so parking `p`'s hit class needs `p | y_k` at every
+hit index, which is unsatisfiable. Hence `2*5*11*17*23*29 = 1247290 | d` **always** — this is a
+strengthening of the forced-prime theorem, and it is what keeps the square-shape families large.
+
+**H3's methodological catch**, worth keeping: against the *unconditional* null the hit indices
+`k0 = -a/d mod q` look like a 60x deficit (z = -9.4). The correct conditional null is
+`B/(qA+B)`, under which obs/exp = 0.90x. The 60x was an artefact of the wrong null.
+
+### Open items carried forward (flagged by the agents themselves)
+
+- H2's "18+ impossible" is exhaustive only inside finite boxes, and the new Pell (15) and
+  elliptic (17) mechanisms were screened **at the discriminant level only — no integral pencil
+  was constructed**. A 17-hit family starting at `T >= 7.3e12` rather than `5.3e14` has never
+  been costed. This is the strongest surviving lead from cycle 1.
+- H1's wheel enumerator is implemented and verified but not merged into the production engine.
+
+### Cycle 2, dispatched
+
+- **H5 — is the counting heuristic right about *where* 58s first exist?** Everything above is
+  conditioned on it, and it was **4x pessimistic** at n=35 (predicted 1.3e9, truth 3.12e8).
+  Measure M(n) exhaustively for n = 20..40+, fit, extrapolate to 58 with honest error bars.
+  WIN if M(58) <= ~1e15 (the search region is far denser than modelled and the project re-aims);
+  LOSS if >= 1e17. `experiments/2026-10-03-mcurve`.

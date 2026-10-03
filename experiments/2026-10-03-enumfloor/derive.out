@@ -1,0 +1,44 @@
+bad primes <= 140: [2, 5, 11, 17, 23, 29, 41, 47, 53, 59, 71, 83, 89, 101, 107, 113, 131, 137]
+bad primes forced to divide d (2p <= 58): [2, 5, 11, 17, 23, 29]
+D0 = 382160924970  (3 * 2*5*11*17*23*29*41*47*53)
+term floor at K=1 (57*D0) = 21783172723290
+
+pinnable primes: [59, 71, 83, 89, 101, 107, 113, 131, 137, 149]
+
+maxq  M           1/delta     64*M       engine floor P58@engine  P58@2.2e13 
+59    1.77e+03    59          1.13e+05   2.18e+13    2.742e-15   2.742e-15  
+71    1.26e+05    322         8.04e+06   2.18e+13    6.17e-15    6.17e-15   
+83    1.04e+07    1070        6.68e+08   2.18e+13    1.236e-14   1.236e-14  
+89    9.28e+08    3071        5.94e+10   2.18e+13    2.363e-14   2.363e-14  
+101   9.38e+10    7214        6e+12      2.18e+13    4.184e-14   4.184e-14  
+107   1e+13       15753       6.42e+14   6.42e+14    3.464e-15   7.177e-14  
+113   1.13e+15    32366       7.26e+16   7.26e+16    1.337e-16   1.196e-13  
+
+-- ratio of P58 at the natural floor (2.18e13) to P58 at the engine floor --
+  pin 59..59    P58@nat/P58@today =      20.5   (1/delta = 59)
+  pin 59..71    P58@nat/P58@today =      46.1   (1/delta = 322)
+  pin 59..83    P58@nat/P58@today =      92.4   (1/delta = 1070)
+  pin 59..89    P58@nat/P58@today =     176.7   (1/delta = 3071)
+  pin 59..101   P58@nat/P58@today =     312.9   (1/delta = 7214)
+  pin 59..107   P58@nat/P58@today =     536.6   (1/delta = 15753)
+  pin 59..113   P58@nat/P58@today =     894.6   (1/delta = 32366)
+
+-- expected hits per candidate emitted, per unit enumeration cost --
+   today: 1 candidate per ~1 loop iteration, P58 = 1.337e-16
+  pin 59..59   at term size 2.18e13: P58 = 2.742e-15
+  pin 59..71   at term size 2.18e13: P58 = 6.17e-15
+  pin 59..83   at term size 2.18e13: P58 = 1.236e-14
+  pin 59..89   at term size 2.18e13: P58 = 2.363e-14
+  pin 59..101  at term size 2.18e13: P58 = 4.184e-14
+  pin 59..107  at term size 2.18e13: P58 = 7.177e-14
+  pin 59..113  at term size 2.18e13: P58 = 1.196e-13
+
+-- supply of admissible a below X = 57*D0 = 2.18e+13 --
+   small-part density (a=1 mod 3, odd, 5!a) = 0.13333  => 1/7.5
+  pin 59..59   : 1/delta_total =      442, admissible a < X = 4.923e+10, expected 58s = 0.000135
+  pin 59..71   : 1/delta_total =     2417, admissible a < X = 9.013e+09, expected 58s = 5.56e-05
+  pin 59..83   : 1/delta_total =     8024, admissible a < X = 2.715e+09, expected 58s = 3.36e-05
+  pin 59..89   : 1/delta_total =    23035, admissible a < X = 9.456e+08, expected 58s = 2.23e-05
+  pin 59..101  : 1/delta_total =    54106, admissible a < X = 4.026e+08, expected 58s = 1.68e-05
+  pin 59..107  : 1/delta_total =   118150, admissible a < X = 1.844e+08, expected 58s = 1.32e-05
+  pin 59..113  : 1/delta_total =   242745, admissible a < X = 8.974e+07, expected 58s = 1.07e-05

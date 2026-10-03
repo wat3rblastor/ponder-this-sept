@@ -1,0 +1,156 @@
+=== A. headline: pin 59..113, X = 57*D0 = 21783172723290, auto split ===
+### --Q 59,71,83,89,101,107,113 --X 21783172723290
+d=382160924970 X=21783172723290  Q1(wheel)=6 primes M1=334413353401  Q2(filter)=1 primes
+wheel residues=21228025  lifts=66  1/delta=32366  expected out=6.73e+08
+out=673025293 cand=1382760970 leaves=21228025 sec=4.603 work_per_out=2.0861 ns_per_out=6.84 expected_out=6.73025e+08 verified=0 badver=0
+
+=== A'. same, 113 pulled into the wheel (M1 > X, i.e. pure CRT walk w/ prune) ===
+### --Q 59,71,83,89,101,107,113 --X 21783172723290 --split 7
+d=382160924970 X=21783172723290  Q1(wheel)=7 primes M1=37788708934313  Q2(filter)=0 primes
+wheel residues=1167541375  lifts=1  1/delta=32366  expected out=6.73e+08
+out=673025293 cand=673025293 leaves=1167541375 sec=4.911 work_per_out=2.7348 ns_per_out=7.30 expected_out=6.73025e+08 verified=0 badver=0
+
+=== A''. same, verified sample (brute-force inverse verifier, 2e6 outputs) ===
+### --Q 59,71,83,89,101,107,113 --X 21783172723290 --verify --maxout 2000000
+d=382160924970 X=21783172723290  Q1(wheel)=6 primes M1=334413353401  Q2(filter)=1 primes
+wheel residues=21228025  lifts=66  1/delta=32366  expected out=6.73e+08
+out=2000000 cand=4109107 leaves=63083 sec=0.447 work_per_out=2.0861 ns_per_out=223.58 expected_out=6.73025e+08 verified=2000000 badver=0
+
+=== B. X sweep, pin 59..113, auto split ===
+### --Q 59,71,83,89,101,107,113 --X 1000000000000 --maxout 30000000
+d=382160924970 X=1000000000000  Q1(wheel)=6 primes M1=334413353401  Q2(filter)=1 primes
+wheel residues=21228025  lifts=3  1/delta=32366  expected out=3.09e+07
+out=30000000 cand=61636024 leaves=20611915 sec=0.279 work_per_out=2.7416 ns_per_out=9.30 expected_out=3.08966e+07 verified=0 badver=0
+
+### --Q 59,71,83,89,101,107,113 --X 10000000000000 --maxout 30000000
+d=382160924970 X=10000000000000  Q1(wheel)=6 primes M1=334413353401  Q2(filter)=1 primes
+wheel residues=21228025  lifts=30  1/delta=32366  expected out=3.09e+08
+out=30000000 cand=61636372 leaves=2061203 sec=0.214 work_per_out=2.1233 ns_per_out=7.12 expected_out=3.08966e+08 verified=0 badver=0
+
+### --Q 59,71,83,89,101,107,113 --X 21783172723290 --maxout 30000000
+d=382160924970 X=21783172723290  Q1(wheel)=6 primes M1=334413353401  Q2(filter)=1 primes
+wheel residues=21228025  lifts=66  1/delta=32366  expected out=6.73e+08
+out=30000000 cand=61636349 leaves=946236 sec=0.200 work_per_out=2.0861 ns_per_out=6.65 expected_out=6.73025e+08 verified=0 badver=0
+
+### --Q 59,71,83,89,101,107,113 --X 100000000000000 --maxout 30000000
+d=382160924970 X=100000000000000  Q1(wheel)=7 primes M1=37788708934313  Q2(filter)=0 primes
+wheel residues=1167541375  lifts=3  1/delta=32366  expected out=3.09e+09
+out=30000000 cand=30000000 leaves=11336624 sec=0.096 work_per_out=1.3779 ns_per_out=3.20 expected_out=3.08966e+09 verified=0 badver=0
+
+### --Q 59,71,83,89,101,107,113 --X 1000000000000000 --maxout 30000000
+d=382160924970 X=1000000000000000  Q1(wheel)=7 primes M1=37788708934313  Q2(filter)=0 primes
+wheel residues=1167541375  lifts=27  1/delta=32366  expected out=3.09e+10
+out=30000000 cand=30000000 leaves=1133662 sec=0.047 work_per_out=1.0378 ns_per_out=1.56 expected_out=3.08966e+10 verified=0 badver=0
+
+### --Q 59,71,83,89,101,107,113 --X 10000000000000000 --maxout 30000000
+d=382160924970 X=10000000000000000  Q1(wheel)=7 primes M1=37788708934313  Q2(filter)=0 primes
+wheel residues=1167541375  lifts=265  1/delta=32366  expected out=3.09e+11
+out=30000000 cand=30000000 leaves=113367 sec=0.037 work_per_out=1.0038 ns_per_out=1.24 expected_out=3.08966e+11 verified=0 badver=0
+
+### --Q 59,71,83,89,101,107,113 --X 100000000000000000 --maxout 30000000
+d=382160924970 X=100000000000000000  Q1(wheel)=7 primes M1=37788708934313  Q2(filter)=0 primes
+wheel residues=1167541375  lifts=2647  1/delta=32366  expected out=3.09e+12
+out=30000000 cand=30000000 leaves=11337 sec=0.037 work_per_out=1.0004 ns_per_out=1.23 expected_out=3.08966e+12 verified=0 badver=0
+
+=== C. pin-set sweep at X = 57*D0 (each extra pinned prime costs ~q/(q-58)) ===
+### --Q 59,71,83,89,101 --X 21783172723290 --maxout 30000000
+d=382160924970 X=21783172723290  Q1(wheel)=5 primes M1=3125358443  Q2(filter)=0 primes
+wheel residues=433225  lifts=6970  1/delta=7214  expected out=3.019e+09
+out=30000000 cand=30000000 leaves=4305 sec=0.036 work_per_out=1.0001 ns_per_out=1.22 expected_out=3.0195e+09 verified=0 badver=0
+
+### --Q 59,71,83,89,101,107 --X 21783172723290 --maxout 30000000
+d=382160924970 X=21783172723290  Q1(wheel)=6 primes M1=334413353401  Q2(filter)=0 primes
+wheel residues=21228025  lifts=66  1/delta=15753  expected out=1.383e+09
+out=30000000 cand=30000000 leaves=460558 sec=0.041 work_per_out=1.0154 ns_per_out=1.36 expected_out=1.38276e+09 verified=0 badver=0
+
+### --Q 59,71,83,89,101,107,113 --X 21783172723290 --maxout 30000000
+d=382160924970 X=21783172723290  Q1(wheel)=6 primes M1=334413353401  Q2(filter)=1 primes
+wheel residues=21228025  lifts=66  1/delta=32366  expected out=6.73e+08
+out=30000000 cand=61636349 leaves=946236 sec=0.200 work_per_out=2.0861 ns_per_out=6.67 expected_out=6.73025e+08 verified=0 badver=0
+
+### --Q 59,71,83,89,101,107,113,131 --X 21783172723290 --maxout 30000000
+d=382160924970 X=21783172723290  Q1(wheel)=6 primes M1=334413353401  Q2(filter)=2 primes
+wheel residues=21228025  lifts=66  1/delta=58082  expected out=3.75e+08
+out=30000000 cand=110606878 leaves=1698028 sec=0.600 work_per_out=3.7435 ns_per_out=20.00 expected_out=3.75045e+08 verified=0 badver=0
+
+### --Q 59,71,83,89,101,107,113,131,137 --X 21783172723290 --maxout 30000000
+d=382160924970 X=21783172723290  Q1(wheel)=6 primes M1=334413353401  Q2(filter)=3 primes
+wheel residues=21228025  lifts=66  1/delta=100724  expected out=2.163e+08
+out=30000000 cand=191811606 leaves=2944676 sec=1.499 work_per_out=6.4919 ns_per_out=49.97 expected_out=2.16267e+08 verified=0 badver=0
+
+### --Q 59,71,83,89,101,107,113,131,137,149 --X 21783172723290 --maxout 30000000
+d=382160924970 X=21783172723290  Q1(wheel)=6 primes M1=334413353401  Q2(filter)=4 primes
+wheel residues=21228025  lifts=66  1/delta=164921  expected out=1.321e+08
+out=30000000 cand=314063222 leaves=4821472 sec=3.928 work_per_out=10.6295 ns_per_out=130.93 expected_out=1.32082e+08 verified=0 badver=0
+
+### --Q 59,71,83,89,101,107,113,131,137,149,167 --X 21783172723290 --maxout 30000000
+d=382160924970 X=21783172723290  Q1(wheel)=6 primes M1=334413353401  Q2(filter)=5 primes
+wheel residues=21228025  lifts=66  1/delta=252677  expected out=8.621e+07
+out=30000000 cand=481189566 leaves=7387180 sec=6.680 work_per_out=16.2859 ns_per_out=222.66 expected_out=8.62094e+07 verified=0 badver=0
+
+### --Q 59,71,83,89,101,107,113,131,137,149,167,173 --X 21783172723290 --maxout 30000000
+d=382160924970 X=21783172723290  Q1(wheel)=6 primes M1=334413353401  Q2(filter)=6 primes
+wheel residues=21228025  lifts=66  1/delta=380115  expected out=5.731e+07
+out=30000000 cand=723890045 leaves=11113097 sec=11.448 work_per_out=24.5001 ns_per_out=381.61 expected_out=5.73068e+07 verified=0 badver=0
+
+=== D. naive full-residue-enumeration baseline (split = all primes, no mid-split) ===
+    cost per output should be ~ M/X ; shown where it is cheap enough to run
+### --Q 59,71,83,89,101,107,113 --X 100000000000 --split 7 --maxout 3000000
+d=382160924970 X=100000000000  Q1(wheel)=7 primes M1=37788708934313  Q2(filter)=0 primes
+wheel residues=1167541375  lifts=1  1/delta=32366  expected out=3.09e+06
+out=3000000 cand=3000000 leaves=1133632365 sec=3.213 work_per_out=378.8775 ns_per_out=1071.17 expected_out=3.08966e+06 verified=0 badver=0
+
+### --Q 59,71,83,89,101,107,113 --X 10000000000 --split 7 --maxout 3000000
+d=382160924970 X=10000000000  Q1(wheel)=7 primes M1=37788708934313  Q2(filter)=0 primes
+wheel residues=1167541375  lifts=1  1/delta=32366  expected out=3.09e+05
+out=309006 cand=309006 leaves=1167541375 sec=3.318 work_per_out=3779.3777 ns_per_out=10737.82 expected_out=308966 verified=0 badver=0
+
+### --Q 59,71,83,89,101,107,113 --X 1000000000 --split 7 --maxout 3000000
+d=382160924970 X=1000000000  Q1(wheel)=7 primes M1=37788708934313  Q2(filter)=0 primes
+wheel residues=1167541375  lifts=1  1/delta=32366  expected out=3.09e+04
+out=30944 cand=30944 leaves=1167541375 sec=3.379 work_per_out=37731.7838 ns_per_out=109207.50 expected_out=30896.6 verified=0 badver=0
+
+=== E. engine-equivalent baseline: same pins, term floor 64*MOD ===
+    (MOD = 30*59*71*83*89*101*107*113 = 1133661268029390, X = 64*MOD)
+### --Q 59,71,83,89,101,107,113 --X 72554321153880960 --maxout 30000000
+d=382160924970 X=72554321153880960  Q1(wheel)=7 primes M1=37788708934313  Q2(filter)=0 primes
+wheel residues=1167541375  lifts=1921  1/delta=32366  expected out=2.242e+12
+out=30000000 cand=30000000 leaves=15625 sec=0.038 work_per_out=1.0005 ns_per_out=1.26 expected_out=2.24168e+12 verified=0 badver=0
+
+=== F. at the engine's own term floor X = 64*MOD = 7.2554e16: does pinning MORE pay? ===
+### --Q 59,71,83,89,101,107,113 --X 72554321153880960 --maxout 30000000
+d=382160924970 X=72554321153880960  Q1(wheel)=7 primes M1=37788708934313  Q2(filter)=0 primes
+wheel residues=1167541375  lifts=1921  1/delta=32366  expected out=2.242e+12
+out=30000000 cand=30000000 leaves=15625 sec=0.038 work_per_out=1.0005 ns_per_out=1.26 expected_out=2.24168e+12 verified=0 badver=0
+
+### --Q 59,71,83,89,101,107,113,131 --X 72554321153880960 --maxout 30000000
+d=382160924970 X=72554321153880960  Q1(wheel)=8 primes M1=4950320870395003  Q2(filter)=0 primes
+wheel residues=85230520375  lifts=15  1/delta=58082  expected out=1.249e+12
+out=30000000 cand=30000000 leaves=2046876 sec=0.048 work_per_out=1.0682 ns_per_out=1.61 expected_out=1.24918e+12 verified=0 badver=0
+
+### --Q 59,71,83,89,101,107,113,131,137 --X 72554321153880960 --maxout 30000000
+d=382160924970 X=72554321153880960  Q1(wheel)=8 primes M1=4950320870395003  Q2(filter)=1 primes
+wheel residues=85230520375  lifts=15  1/delta=100724  expected out=7.203e+11
+out=30000000 cand=52025350 leaves=3549648 sec=0.199 work_per_out=1.8525 ns_per_out=6.63 expected_out=7.2033e+11 verified=0 badver=0
+
+### --Q 59,71,83,89,101,107,113,131,137,149,167,173 --X 72554321153880960 --maxout 30000000
+d=382160924970 X=72554321153880960  Q1(wheel)=8 primes M1=4950320870395003  Q2(filter)=4 primes
+wheel residues=85230520375  lifts=15  1/delta=380115  expected out=1.909e+11
+out=30000000 cand=196329147 leaves=13395376 sec=2.699 work_per_out=6.9908 ns_per_out=89.97 expected_out=1.90875e+11 verified=0 badver=0
+
+=== G. large verified samples (independent brute-force-inverse verifier) ===
+### --Q 59,71,83,89,101,107 --X 21783172723290 --verify --maxout 20000000
+d=382160924970 X=21783172723290  Q1(wheel)=6 primes M1=334413353401  Q2(filter)=0 primes
+wheel residues=21228025  lifts=66  1/delta=15753  expected out=1.383e+09
+out=20000000 cand=20000000 leaves=307039 sec=3.134 work_per_out=1.0154 ns_per_out=156.68 expected_out=1.38276e+09 verified=20000000 badver=0
+
+### --Q 59,71,83,89,101,107,113 --X 21783172723290 --verify --maxout 20000000
+d=382160924970 X=21783172723290  Q1(wheel)=6 primes M1=334413353401  Q2(filter)=1 primes
+wheel residues=21228025  lifts=66  1/delta=32366  expected out=6.73e+08
+out=20000000 cand=41090983 leaves=630826 sec=4.595 work_per_out=2.0861 ns_per_out=229.77 expected_out=6.73025e+08 verified=20000000 badver=0
+
+### --Q 59,71,83,89,101,107,113,131,137,149,167,173 --X 21783172723290 --verify --maxout 5000000
+d=382160924970 X=21783172723290  Q1(wheel)=6 primes M1=334413353401  Q2(filter)=6 primes
+wheel residues=21228025  lifts=66  1/delta=380115  expected out=5.731e+07
+out=5000000 cand=120643525 leaves=1852109 sec=4.366 work_per_out=24.4991 ns_per_out=873.28 expected_out=5.73068e+07 verified=5000000 badver=0
+
