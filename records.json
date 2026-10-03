@@ -14,22 +14,23 @@
     "K": 205
   },
   "g1_min_last_term_35": {
-    "a": 73415383,
-    "d": 37418700,
+    "a": 219830911,
+    "d": 2709630,
     "n": 35,
-    "last": 1345651183,
-    "d_factored": "2^2 * 3 * 5^2 * 11 * 17 * 23 * 29  (= 5610 * 6670)",
+    "last": 311958331,
+    "d_factored": "2 * 3^2 * 5 * 7 * 11 * 17 * 23",
     "verified": true,
-    "verifier": "src/verify.py 73415383 37418700 35",
-    "cross_checked": "src/crosscheck.py 73415383 37418700 35 (explicit x^2+xy+y^2 per term)",
-    "method": "experiments/2026-10-03-g1",
+    "verifier": "src/verify.py 219830911 2709630 35 --maximal",
+    "cross_checked": "src/crosscheck.py 219830911 2709630 35",
+    "maximal_both_ends": true,
+    "method": "experiments/2026-10-03-g1opt",
+    "date": "2026-10-03",
+    "optimal": true,
+    "proof": "PROVED MINIMAL. (1) For n=35 every bad prime p with 2p<=35 -- that is 2,5,11,17 -- must divide d: among 35 consecutive indices at least two terms are divisible by p, each needs p^2|, and their difference is p*j*d with j<p, forcing p|d. (2) 3|d is forced because a Loeschian number is never 2 mod 3. Hence d is a multiple of lcm(3,2,5,11,17)=5610. (3) Any 35-term AP with last term <= 311958331 has 34d <= 311958331, so d <= 9175245 and m = d/5610 <= 1635. (4) experiments/2026-10-03-g1opt swept ALL m = 1..1638 and ALL a with every term <= 311958331, and found exactly one 35-term AP: a=219830911, d=2709630. Therefore no 35-term Loeschian AP has a last term smaller than 311958331.",
     "exhaustive_bounds": [
-      "No 35-term Loeschian AP has last term <= 2e8: complete family d=5610*m, m=1..1049, all a.",
-      "No 35-term AP with last term < 1345651183 exists with 23*29 | (d/5610): complete sub-family m=667*j, j=1..10.",
-      "Scans of the m=23j and m=29j sub-families, and the full m sweep, were in progress at the deadline."
-    ],
-    "note": "d must be a multiple of 5610 = 3*2*5*11*17 for n=35 (theorem: p | d for bad p with 2p <= n), so the family scanned is COMPLETE and these bounds are proofs, not best-effort.",
-    "date": "2026-10-03"
+      "COMPLETE sweep m=1..1638 (covers every d with 34d <= 311958331), all a, all terms <= 311958331: exactly one 35-term AP exists, the record itself.",
+      "Earlier complete sweep to last term <= 2e8 found none (longest runs there are 27-29 terms)."
+    ]
   },
   "g2_at_least_42": {
     "achieved": true,
@@ -63,6 +64,24 @@
       "maximal_both_ends": true,
       "method": "experiments/2026-10-03-ap58 (apsearch, Wroblewski two-stage, K=128)",
       "date": "2026-10-02"
+    },
+    {
+      "a": 73415383,
+      "d": 37418700,
+      "n": 35,
+      "last": 1345651183,
+      "d_factored": "2^2 * 3 * 5^2 * 11 * 17 * 23 * 29  (= 5610 * 6670)",
+      "verified": true,
+      "verifier": "src/verify.py 73415383 37418700 35",
+      "cross_checked": "src/crosscheck.py 73415383 37418700 35 (explicit x^2+xy+y^2 per term)",
+      "method": "experiments/2026-10-03-g1",
+      "exhaustive_bounds": [
+        "No 35-term Loeschian AP has last term <= 2e8: complete family d=5610*m, m=1..1049, all a.",
+        "No 35-term AP with last term < 1345651183 exists with 23*29 | (d/5610): complete sub-family m=667*j, j=1..10.",
+        "Scans of the m=23j and m=29j sub-families, and the full m sweep, were in progress at the deadline."
+      ],
+      "note": "d must be a multiple of 5610 = 3*2*5*11*17 for n=35 (theorem: p | d for bad p with 2p <= n), so the family scanned is COMPLETE and these bounds are proofs, not best-effort.",
+      "date": "2026-10-03"
     }
   ]
 }

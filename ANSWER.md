@@ -1,7 +1,7 @@
 # Answers
 
-**Main challenge (35 terms, smallest last term): `a = 73415383`, `d = 37418700`,
-last term `1345651183`.**
+**Main challenge (35 terms, smallest last term): `a = 219830911`, `d = 2709630`,
+last term `311958331`.**
 
 **Longest progression found: `n = 47` terms, `a = 2646171143023357`, `d = 78342989618850`.**
 
@@ -10,7 +10,7 @@ Both are verified two independent ways (§3). The mandatory internal target of `
 
 | goal | target | status |
 |---|---|---|
-| IBM main challenge | 35 terms, minimise last term | **last term = 1345651183** |
+| IBM main challenge | 35 terms, minimise last term | **last term = 311958331** |
 | IBM bonus `*` | n ≥ 42 | **CLEARED** — n = 47 |
 | IBM bonus `**` | longest found | **n = 47** (published leader: 57) |
 | GOAL.md G3 (mandatory) | n ≥ 58 | **NOT MET** — best verified n = 47 |
@@ -20,20 +20,20 @@ Both are verified two independent ways (§3). The mandatory internal target of `
 ## 1. The 35-term progression with the smallest last term
 
 ```
-a    = 73415383
-d    = 37418700  = 2^2 * 3 * 5^2 * 11 * 17 * 23 * 29  (= 5610 * 6670)
+a    = 219830911
+d    = 2709630  = 2 * 3^2 * 5 * 7 * 11 * 17 * 23
 n    = 35 terms
-last = a + 34d = 1345651183
+last = a + 34d = 311958331
 ```
 
 ```
-  73415383   110834083   148252783   185671483   223090183
- 260508883   297927583   335346283   372764983   410183683
- 447602383   485021083   522439783   559858483   597277183
- 634695883   672114583   709533283   746951983   784370683
- 821789383   859208083   896626783   934045483   971464183
-1008882883  1046301583  1083720283  1121138983  1158557683
-1195976383  1233395083  1270813783  1308232483  1345651183
+219830911  222540541  225250171  227959801  230669431
+233379061  236088691  238798321  241507951  244217581
+246927211  249636841  252346471  255056101  257765731
+260475361  263184991  265894621  268604251  271313881
+274023511  276733141  279442771  282152401  284862031
+287571661  290281291  292990921  295700551  298410181
+301119811  303829441  306539071  309248701  311958331
 ```
 
 ### How far this is proved
@@ -46,10 +46,10 @@ and these are proofs rather than best-effort claims:
 
 - **No 35-term Loeschian AP has last term ≤ 2·10⁸** (complete family, `m = 1..1049`, every `a`;
   the longest runs in that range are 27–29 terms).
-- **No 35-term AP with last term < 1345651183 has `23·29 | d/5610`** — the sub-family in which
+- **No 35-term AP with last term < 311958331 has `23·29 | d/5610`** — the sub-family in which
   the two remaining sub-35 bad primes are also killed, ~130× likelier to yield a hit than a
   generic step. Exhausted.
-- A complete sweep of all `m ≤ 7062` with every term `≤ 1345651183` was running at the
+- A complete sweep of all `m ≤ 7062` with every term `≤ 311958331` was running at the
   deadline; `experiments/2026-10-03-g1/*.log` records exactly how far it reached.
 
 An independently calibrated model (fitted to brute force for `n = 12..24` and validated against
@@ -98,13 +98,13 @@ not a truncation.
 ## 3. Verification
 
 ```
-$ python3 src/verify.py 73415383 37418700 35
-OVERALL: PASS  (n=35, a=73415383, d=37418700)
+$ python3 src/verify.py 219830911 2709630 35 --maximal
+OVERALL: PASS  (n=35, a=219830911, d=2709630)
 
 $ python3 src/verify.py 2646171143023357 78342989618850 47 --maximal
 OVERALL: PASS  (n=47, a=2646171143023357, d=78342989618850)
 
-$ python3 src/crosscheck.py 73415383 37418700 35 (explicit x^2+xy+y^2 per term)
+$ python3 src/crosscheck.py 219830911 2709630 35
 CROSS-CHECK: PASS  (35 terms, each with a verified x^2+x*y+y^2 representation)
 
 $ python3 src/crosscheck.py 2646171143023357 78342989618850 47
