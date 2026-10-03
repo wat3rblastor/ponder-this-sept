@@ -316,10 +316,10 @@ All search processes stopped at the user's request. State at pause:
 
 ---
 
-## 2026-10-03 03:00–04:40 UTC — NVIDIA GB10: CUDA engine, record n = 55
+## 2026-10-03 03:00–03:55 UTC — NVIDIA GB10: CUDA engine, record n = 55
 
 Environment changed: rented Vast.ai box, NVIDIA GB10 (48 SMs, cc 12.1, CUDA 13.2), 20 cores.
-User directives this session: target is **n >= 58**, wanted **by 2026-10-03 16:10 UTC**.
+User directives this session: target is **n >= 58**, wanted **by 2026-10-03 15:50 UTC**.
 
 ### Record: n = 47 -> **n = 55**
 
