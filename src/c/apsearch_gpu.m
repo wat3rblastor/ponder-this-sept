@@ -266,6 +266,11 @@ int main(int argc, char **argv) {
         if (!offs || !rps || !k1s || !k2s || !words) { fprintf(stderr, "oom tables\n"); return 2; }
 
         for (u64 shift = 0; shift < shifts; shift++) {
+          /* Inner pool: without it every unit's Metal buffers (tables + the
+           * survivor buffer) live until main() returns, leaking ~100 MB per
+           * unit. That drove the machine into swap and made units take 420 s
+           * instead of 12. */
+          @autoreleasepool {
             u64 boff = shift * 64;
             u64 acc = 0;
             for (int t = 0; t < ntc; t++) {
@@ -294,7 +299,7 @@ int main(int argc, char **argv) {
             }
 
             /* ---- dispatch ---- */
-            const u32 CAP = 1u << 22;
+            const u32 CAP = 1u << 18;
             #define BUF(p, len) [dev newBufferWithBytes:(p) length:(len) \
                                    options:MTLResourceStorageModeShared]
             id<MTLBuffer> bR  = BUF(Rpre, nthreads * 8);
@@ -404,6 +409,7 @@ int main(int argc, char **argv) {
                 printf("VERIFY K=%llu shift=%llu residues=%.6g survivors=%u "
                        "confirmed=%llu\n", K, shift, (double)total, nsurv, nconf);
             }
+          }
         }
         free(Rpre); free(words); free(offs); free(rps); free(k1s); free(k2s);
     }

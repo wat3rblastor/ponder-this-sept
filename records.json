@@ -1,16 +1,17 @@
 {
   "g3_longest": {
-    "a": 5413537078288507,
-    "d": 48916598396160,
-    "n": 43,
-    "last": 7468034210927227,
-    "K": 128,
-    "d_factored": "128 * 3*2*5*11*17*23*29*41*47*53",
+    "a": 2646171143023357,
+    "d": 78342989618850,
+    "n": 47,
+    "last": 6249948665490457,
+    "d_factored": "2 * 3 * 5^2 * 11 * 17 * 23 * 29 * 41^2 * 47 * 53",
     "verified": true,
-    "verifier": "src/verify.py 5413537078288507 48916598396160 43 --maximal",
+    "verifier": "src/verify.py 2646171143023357 78342989618850 47 --maximal",
+    "cross_checked": "src/crosscheck.py 2646171143023357 78342989618850 47",
     "maximal_both_ends": true,
-    "method": "experiments/2026-10-03-ap58 (apsearch, Wroblewski two-stage, K=128)",
-    "date": "2026-10-02"
+    "method": "experiments/2026-10-03-gpu",
+    "date": "2026-10-03",
+    "K": 205
   },
   "g1_min_last_term_35": {
     "a": 73415383,
@@ -32,11 +33,11 @@
   },
   "g2_at_least_42": {
     "achieved": true,
-    "n": 43,
-    "a": 5413537078288507,
-    "d": 48916598396160,
+    "n": 47,
+    "a": 2646171143023357,
+    "d": 78342989618850,
     "verified": true,
-    "note": "bonus (*) waypoint cleared by the n=43 record above"
+    "note": "cleared by the G3 record above"
   },
   "history": [
     {
@@ -48,6 +49,19 @@
       "verifier": "src/verify.py 73415383 37418700 36 --maximal",
       "maximal_both_ends": true,
       "method": "experiments/2026-10-02-calibration (flat sieve scan, d = 3741870*10)",
+      "date": "2026-10-02"
+    },
+    {
+      "a": 5413537078288507,
+      "d": 48916598396160,
+      "n": 43,
+      "last": 7468034210927227,
+      "K": 128,
+      "d_factored": "128 * 3*2*5*11*17*23*29*41*47*53",
+      "verified": true,
+      "verifier": "src/verify.py 5413537078288507 48916598396160 43 --maximal",
+      "maximal_both_ends": true,
+      "method": "experiments/2026-10-03-ap58 (apsearch, Wroblewski two-stage, K=128)",
       "date": "2026-10-02"
     }
   ]
