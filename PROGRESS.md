@@ -778,3 +778,15 @@ of the previous entry ("do not cap OpenMP threads").
   time relative to (nch 7, t0 24), identical results in every setting: (8, 28) is 0.98-1.00 on
   the reference class and 0.97-0.98 on the 59 | K classes; (7, 20) is 11-18% slower; (7, 36)
   8-9% slower on the reference. Production default is now `--nch 8 --t0 28` (~2-3%).
+
+### 19:00 UTC — the "free 1.46x from pinning 131" lead is closed (LOSS)
+
+`experiments/2026-10-03-wheel131/`: the enumfloor claim does not transfer to the CUDA engine.
+MODCAP 2e16 already pins 131 for 68.9% of the plan's residues (every class except the main
+MOD 1.1337e15 one); in the main class 131 is a tier-C row, so its pass-probability gain is
+already realised per candidate. Pinning it there needs MOD' = 1.485e17 > 64*MOD (not free once
+the factor 30 is counted), exceeds the kernel's 2^56 limit, and the exact enrichment 1.784
+cancels the cost 131/73 = 1.795. Planner-model ceiling +4.9% under optimistic assumptions,
+0.0-0.4% with measured GPU cost and the real window offset; raising MODCAP to 1.5e17 loses 5%.
+Also closed this hour (profiler cycle 6): queued launches (kernels already run 99% of wall time
+per engine; <= 1%).

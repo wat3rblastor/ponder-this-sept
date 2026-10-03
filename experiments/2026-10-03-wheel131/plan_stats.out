@@ -1,0 +1,22 @@
+plan experiments/remote_plan_cost_f.txt: units=1878095 Ks=223558 residues=2.578e+16
+  MOD=2.5171e+15 units=36957 res_share=0.489 pins=[71, 83, 89, 101, 107, 113, 131] 131pinned=True
+  MOD=1.1337e+15 units=1657874 res_share=0.300 pins=[59, 71, 83, 89, 101, 107, 113] 131pinned=False
+  MOD=4.857e+15 units=445 res_share=0.036 pins=[83, 89, 101, 107, 113, 131, 137] 131pinned=True
+  MOD=2.0917e+15 units=26692 res_share=0.027 pins=[59, 83, 89, 101, 107, 113, 131] 131pinned=True
+  MOD=4.1548e+15 units=460 res_share=0.019 pins=[71, 89, 101, 107, 113, 131, 137] 131pinned=True
+  MOD=3.8747e+15 units=451 res_share=0.015 pins=[71, 83, 101, 107, 113, 131, 137] 131pinned=True
+  MOD=1.7893e+15 units=27096 res_share=0.014 pins=[59, 71, 89, 101, 107, 113, 131] 131pinned=True
+  MOD=1.6686e+15 units=27217 res_share=0.012 pins=[59, 71, 83, 101, 107, 113, 131] 131pinned=True
+  MOD=3.4143e+15 units=470 res_share=0.011 pins=[71, 83, 89, 107, 113, 131, 137] 131pinned=True
+  MOD=3.2228e+15 units=474 res_share=0.010 pins=[71, 83, 89, 101, 113, 131, 137] 131pinned=True
+  MOD=3.0517e+15 units=461 res_share=0.009 pins=[71, 83, 89, 101, 107, 131, 137] 131pinned=True
+  MOD=1.4704e+15 units=27453 res_share=0.008 pins=[59, 71, 83, 89, 107, 113, 131] 131pinned=True
+shifts per K: median 8.0 mean 8.4 max 81
+  Ks with >= 1 shifts: 223558  units in them: 1878095
+  Ks with >= 10 shifts: 89532  units in them: 1289321
+  Ks with >= 50 shifts: 220  units in them: 12924
+  Ks with >= 131 shifts: 0  units in them: 0
+  Ks with >= 262 shifts: 0  units in them: 0
+Ks whose plan shifts are contiguous: 223534 of 223558
+units in classes without 131 pinned: 1663679; of those in complete 131-shift blocks: 0 (0.000)
+residue share by 131 status: {'tierC': 0.2877, '131|K': 0.0231, 'pinned': 0.6892}

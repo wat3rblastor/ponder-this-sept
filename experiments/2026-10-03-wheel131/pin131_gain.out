@@ -1,0 +1,2 @@
+plan experiments/2026-10-03-wheel131/plan_mc2e16.txt: model E58 of plan = 3.1126; main-class K (131 pinnable) = 107196
+cut 1.08e-16/res: K where pinned unit beats old units + displaced work: 1696; upper-bound E58 gain = 0.0055 (0.18% of plan); extra residues 4.26e+14

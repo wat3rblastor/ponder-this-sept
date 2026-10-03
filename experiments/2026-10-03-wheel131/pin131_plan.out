@@ -1,0 +1,4 @@
+sampled main-class K: 3000
+old plan units for these K: E58/res = 9.754e-17   (E58 0.01116 over 1.144e+14 res)
+131-pinned unit s'=0 (optimistic): E58/res = 7.061e-17   (E58 0.07221 over 1.023e+15 res)
+ratio new/old per residue: aggregate 0.724; per-K median 0.747, p90 0.893, max 1.540; K with new better: 104

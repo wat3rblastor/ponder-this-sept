@@ -323,3 +323,69 @@ unit's time relative to 7/24 and checks that surv/bits/conf are identical across
    `cycle5/variants_out.txt`. Expected gain: unknown, at most a few percent; padding alone
    bounds the NCH part at +2.3%.
 3. Power limit 600 W (host side), unchanged.
+
+## Cycle 6 — 2026-10-03 18:43–18:56 UTC (v3 with --nch 8 --t0 28, restarted 18:42:12)
+
+Raw data: `cycle6/` (units_ts.txt, sys_ts.txt, acct.py, large_units.txt, ab_mps.sh).
+
+### 1. Did (8,28) regress in production? No sign of it; I cannot confirm the +2% either
+| window | plan region (res share) | res/s | E58 per wall-hour | E58 per 1e15 res | ref-equiv GPU rate (c2517 cost 1.32 / 1.40) |
+|---|---|---|---|---|---|
+| v3 (7,24), 18:28-18:41, GPU7 excluded | ref 83%, c2517 17% | 9.43e11 | 0.467 | 0.138 | 1.227e11 / 1.242e11 |
+| v3 (8,28), 18:44-18:54 | ref 36%, c2517 64% | 8.83e11 | 0.440 | 0.138 | 1.329e11 / 1.385e11 |
+
+- Raw res/s and E58/h fell 6%. That is because the plan moved into a 59|K-heavy region: the
+  2.5171e15 share went from 17% to 64% of residues, and those cost more per residue.
+- Normalised by class cost, the GPU rate went **up** 8-11%. The sweep predicted about +2%, so
+  the normalisation is the uncertain part. The conclusion holds unless the production cost of
+  the 59|K class is below ~1.2, and the estimates below are 1.36-1.60.
+- E58 per wall-hour is still +10-12% over v2 (0.39-0.40).
+
+### 2. Host side is not a limiter
+- Per-engine accounting (acct.py): sum(kern_s)/wall = **0.99 per engine** in both windows.
+  Each engine has a kernel on the GPU 99% of the time, and the sibling engine covers the
+  other 1%.
+  - (7,24) window: mean kern 94-96 ms, up 2.4-3.0 ms (async, overlapped), wait ~92 ms.
+  - (8,28) window: 70 units/s.
+  - GPU SM busy is 99-100% in every sample.
+- Expected gain from `experiments/2026-10-03-structure/botl/queued_launch.patch`: **<= 1%**
+  (estimate; the per-engine gap is ~1% and is already filled by the sibling).
+- It no longer applies cleanly: `patch -p0 --dry-run` in src/c gives 3 of 11 hunks FAILED.
+  It conflicts with the kern_field change (both add a `start` event and a gpu_s/kern path).
+  Not worth updating at < 3%. I did not prepare a new version.
+
+### 3. Large units under MPS vs solo
+- I solved two production regimes for two unknowns, per GPU-second: v3 (7,24) with ref plus
+  2.5171e15, against v2 windows with ref, other, 2.5171e15 and MOD >= 2.6e15. I assumed the
+  solo ratio for big vs 2.5171e15 (1.22, or 1.0 as a bound) and other = 1.0-1.25.
+- Results (relative to ref):
+
+  | | production (MPS) | solo |
+  |---|---|---|
+  | 2.5171e15 | 1.36-1.43 (1.54-1.60 if big = 2.5171e15) | 1.32 |
+  | MOD >= 2.6e15 | 1.66-1.75 | 1.61 |
+  | ref-equivalent GPU rate | 1.23-1.28e11 | ~1.3e11 |
+
+- The **MPS penalty for large units is ~3-8% per large unit, and ~0% for ref**. Large units
+  are ~60% of v3 GPU time, so dedicated single-engine GPUs for them would gain an estimated
+  **~2-5% overall**.
+  - This rests on a 2-equation solve across windows 30 min apart (clock drift ~1%). It is not
+    measured evidence of >= 3%.
+  - Splitting the plan by class across GPUs also costs flexibility. Single-engine GPUs lose
+    the sibling that hides the ~1% launch gap, which is negligible for 3 s kernels.
+- **Decisive A/B (~13 min of one paused GPU):** `experiments/2026-10-03-profiling/cycle6/ab_mps.sh 7`
+  - 2 engines under MPS, then 1 engine, then 2 engines again, 240 s each, all on 200
+    2.5171e15-class units from the END of the v3 plan.
+  - Outputs go to /tmp only, so nothing is recorded as coverage.
+  - Deploy a class split only if 1-engine res/s >= 1.05x the 2-engine runs.
+
+### 4. Drift
+683 s span: 49.6 cores, **0 of 6828 periods throttled**. GPUs at 99-100% and 549-550 W.
+Clocks 2164-2309 MHz (about +15 MHz versus cycle 5), temperatures 78-90 C. Stable.
+
+### Ranked suggestions
+1. Keep v3 with (8,28). No regression is visible.
+2. Optional: run `cycle6/ab_mps.sh 7`. A class split is worth doing only at >= 5% per large
+   unit (expected overall 2-5%, estimate).
+3. Do not spend effort on queued launches (<= 1%).
+4. Power limit 600 W (host side), unchanged.

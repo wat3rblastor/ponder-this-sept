@@ -1,0 +1,1 @@
+{"K":7,"shift":0,"res":4.67017e+09,"surv":515,"conf":479,"best":18,"gpu_s":0.10,"cpu_s":0.05,"kern_s":0.0948,"covered":7.25543e+16,"overflow":false}

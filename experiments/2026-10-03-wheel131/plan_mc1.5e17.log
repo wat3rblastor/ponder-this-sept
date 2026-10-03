@@ -1,0 +1,5 @@
+  at 1e+15 res: E58=0.352 (units 15525, marginal/res 2.58e-16)
+  at 3e+15 res: E58=0.779 (units 44383, marginal/res 1.86e-16)
+  at 1e+16 res: E58=1.826 (units 141866, marginal/res 1.28e-16)
+  at 2e+16 res: E58=2.958 (units 283999, marginal/res 1.02e-16)
+units=283999 residues=2e+16 E58=2.958 maxK=598347 maxshift=74
