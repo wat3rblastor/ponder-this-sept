@@ -1,0 +1,6 @@
+ksolo K=17191 sh=4 res=4.67e+09 ntc=608 0.1022s 4.571e+10 res/s
+ksolo K=21482 sh=5 res=4.67e+09 ntc=608 0.0990s 4.717e+10 res/s
+ksolo K=6667 sh=13 res=4.897e+11 ntc=608 15.0944s 3.244e+10 res/s
+ksolo K=19607 sh=1 res=4.67e+09 ntc=608 0.0992s 4.706e+10 res/s
+ksolo K=17191 sh=4 res=4.67e+09 ntc=608 0.0928s 5.034e+10 res/s
+ksolo K=21482 sh=5 res=4.67e+09 ntc=608 0.0976s 4.784e+10 res/s

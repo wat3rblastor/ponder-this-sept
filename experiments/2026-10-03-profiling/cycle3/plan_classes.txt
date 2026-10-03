@@ -1,0 +1,15 @@
+plan units 868605 remaining 825254
+MOD 2.5171e+15 n=  24924 res share  44.8%  E share  44.6%  yield/res rel 0.997
+MOD 1.1337e+15 n= 621635 res share  15.3%  E share  15.3%  yield/res rel 0.998
+MOD 4.8570e+15 n=    766 res share   8.4%  E share   8.4%  yield/res rel 1.004
+MOD 4.1548e+15 n=    780 res share   4.4%  E share   4.4%  yield/res rel 1.002
+MOD 3.8747e+15 n=    787 res share   3.6%  E share   3.6%  yield/res rel 1.001
+MOD 2.0917e+15 n=  25369 res share   3.5%  E share   3.5%  yield/res rel 0.997
+MOD 3.4143e+15 n=    795 res share   2.6%  E share   2.6%  yield/res rel 1.003
+MOD 3.2228e+15 n=    800 res share   2.3%  E share   2.3%  yield/res rel 1.003
+MOD 3.0517e+15 n=    803 res share   2.1%  E share   2.1%  yield/res rel 1.004
+MOD 1.7893e+15 n=  25756 res share   1.9%  E share   1.8%  yield/res rel 0.998
+MOD 2.6324e+15 n=    830 res share   1.6%  E share   1.6%  yield/res rel 1.004
+MOD 1.6686e+15 n=  25855 res share   1.5%  E share   1.5%  yield/res rel 0.998
+MOD 1.4704e+15 n=  26056 res share   1.1%  E share   1.1%  yield/res rel 0.998
+MOD 1.3879e+15 n=  26118 res share   1.0%  E share   1.0%  yield/res rel 0.998

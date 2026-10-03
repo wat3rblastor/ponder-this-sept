@@ -80,3 +80,89 @@ Where the time goes now: **the GPUs are the bottleneck, and they are capped by p
 No new in-container suggestion with measured evidence of >= 3% exists in this state. The
 machine is at 100% SM and at the power cap, and the CPU has 4.8x headroom. The target of
 7.45e11 is exceeded (7.63e11 over 180 s).
+
+## Cycle 3 — 2026-10-03 17:59–18:13 UTC (same 16 engines, OMPT=8; work per joule / per kernel-second)
+
+Raw data: `cycle3/` (units_ts.txt = timestamped log lines, sys_ts.txt = cgroup + GPU every 5 s,
+plan_classes.txt, plan_cost_{0,1}.txt), `ab_ksolo.txt`, `ab2_ksolo.txt`, `ab3_ksolo.txt`.
+**GPU use by me:** about 30 s of KBENCH kernels in total, on GPUs 0-3, including one 15 s unit on
+GPU 2. They ran with the patched copy `cycle3/patchwork/apsearch_cuda_kern`, writing their
+output only into `cycle3/patchwork/`.
+
+### Drift and system state
+- CPU: 52.5 cores (cgroup, 278 s), **0 of 2784 periods throttled**. Load ~55.
+- The GPUs heat-soaked: GPU0 went from 78 C / 2275 MHz (17:51) to 87 C / 2171 MHz, and GPU5
+  runs at 90 C. Clocks are down ~3-5% at the same 550 W. This is hardware and cannot be fixed
+  in the container. It explains part of any slow downward drift in res/s.
+- New bests in the window were 48, 50, 49 and 42 (no 55+). These are per engine since its
+  restart and do not affect the rate.
+
+### 1. Unit mix: GPU cost per residue depends on the unit class (measured)
+The engine was run with KBENCH, which synchronises after each kernel. Units were interleaved
+with the reference class MOD=1.1337e15 on a loaded production GPU. The table gives kernel
+res/s relative to the reference class measured in the same run:
+
+| class (MOD) | plan residue share | thr | res/thr | rel. res per kernel-s |
+|---|---|---|---|---|
+| 1.1337e15 (reference) | 15.3% | 1.73M | 2695 | 1.00 |
+| 2.5171e15 | 44.8% | 84.9M | 4015 | 0.85 |
+| 2.0917e15 | 3.5% | 6.5M | 4014 | 0.83 |
+| 1.6686e15 | 1.5% | 2.7M | 4016 | 0.80 |
+| 1.4704e15 | 1.1% | 2.0M | 4015 | 0.85 |
+| 1.3142e15 | — | 1.73M | 3577 | 0.81 |
+| 1.3879e15 | 1.0% | 1.73M | 4015 | 0.72 |
+| 1.7893e15 | 1.9% | 3.4M | 4016 | 0.65 |
+| 3.0517e15 (one unit, 15 s) | 2.1% (big-MOD classes total ~23%) | 84.9M | 5767 | 0.68 |
+
+Yield per residue in the planner is flat across classes (0.997-1.004 relative,
+`cycle3/plan_classes.txt`). E58 per GPU-second is therefore proportional to the column above.
+The planner budgets and ranks by residues, so it buys the expensive classes at the same price
+as the cheap one.
+
+Planner simulation (`cycle3/plan_cost.py` is a copy of tools/plan_units.py with a cost factor
+per class; same done set, `MODCAP=2e16 --kmax 600000 --smax 3000`). GPU cost is in
+reference-class residue-equivalents; 1e16 is about 2.9 h at the current rate.
+
+| GPU budget | E58 residue-ranked (current) | E58 cost-ranked | gain | residues executed |
+|---|---|---|---|---|
+| 3e15 | 0.358 | 0.388 | +8.4% | 2.40e15 -> 2.74e15 |
+| 6e15 | 0.686 | 0.724 | +5.5% | 4.8e15 -> 5.39e15 |
+| 1e16 | 1.088 | 1.133 | +4.1% | 8.0e15 -> 8.75e15 |
+| 1.5e16 | 1.552 | 1.605 | +3.4% | 1.2e16 -> 1.3e16 |
+| 2e16 | 1.985 | 2.044 | +3.0% | 1.6e16 -> 1.72e16 |
+
+On both metrics: **aggregate res/s also rises about 8-14%**, because the same GPU time executes
+more of the cheap residues. E58 per hour rises 4-8% over the next 1-3 hours and about 3% over 6
+hours. The new plan has ~1.9x more units; the host has the headroom (52 of 246 cores).
+
+Caveats: one or two samples per class, measured under contention. The 0.68 factor for all
+MOD >= 2.6e15 classes rests on a single 3.05e15 unit, and other classes are assumed 0.78.
+
+PPG / pairing: SM busy is 100% in every 1 s sample. Small units queued behind the sibling's
+large units under MPS are not lost time. Reordering units between the two engines, or changing
+PPG, therefore has no measured upside (expected ~0). It cannot be tested without a restart.
+
+### 2. `kern=` patch (ready, not applied): `kern_field.patch`
+`git apply experiments/2026-10-03-profiling/kern_field.patch` (checked with `git apply --check`
+against the current tree). It records a start event on the unit's stream just before the
+launch. It logs `kern=` (start -> done, s) after `wait=` and `"kern_s"` in the jsonl. Nothing
+else changes, and the resume and planner parsers ignore the new field.
+- Compiled and run on K=206: `kern=0.0998s`, the same survivors and best as before.
+- Under MPS the value includes time the kernel shares SMs with the other engine. Compare it
+  per class or per GPU, not as solo time.
+
+### Ranked suggestions
+1. **Rank and budget plan units by GPU cost, not residues.** Estimated +3-8% E58/hour, plus
+   ~+9% res/s, from the simulation above.
+   - Command (writes a new plan file; it does not touch tools/):
+     `COSTAWARE=1 MODCAP=2e16 python3 experiments/2026-10-03-profiling/cycle3/plan_cost.py --budget-res 2.2e16 --kmax 600000 --smax 3000 --out experiments/remote_plan_cost.txt`
+   - Then relaunch with that plan under a new tag. Finished units are excluded through the done
+     glob.
+   - Better first: apply `kern_field.patch` at the same restart, collect ~20 min of `kern_s` by
+     MOD, refit `cost()` in plan_cost.py, and re-plan.
+   - Validation: per-class kern_s/res from production; aggregate res/s should rise.
+   - Risk: the cost factors are thin (n=1-2 per class, under contention). If the big-MOD factor
+     is wrong, the gain shrinks but should not turn negative, because yield per residue is flat
+     across classes. Changing the plan changes the slice assignment; resume is per (K, shift),
+     so that is safe.
+2. Power limit 600 W (host side only), as in cycle 2.

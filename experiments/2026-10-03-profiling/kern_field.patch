@@ -1,0 +1,90 @@
+--- a/src/c/apsearch_cuda.cu	2026-10-03 17:59:45.772061332 +0000
++++ b/src/c/apsearch_cuda.cu	2026-10-03 18:00:07.070061125 +0000
+@@ -614,7 +614,7 @@
+     int ntc;
+     bool valid;
+     double t_launch;
+-    cudaEvent_t done;
++    cudaEvent_t start, done;  /* start: recorded on the unit's stream just before the launch */
+ };
+ 
+ struct Hit { u64 n, a, d, K; };
+@@ -724,7 +724,7 @@
+     }
+     std::vector<u64> h_hits((size_t)CAP * 2);
+     Unit inflight[2]; inflight[0].valid = inflight[1].valid = false;
+-    for (int b = 0; b < 2; b++) CK(cudaEventCreate(&inflight[b].done));
++    for (int b = 0; b < 2; b++) { CK(cudaEventCreate(&inflight[b].done)); CK(cudaEventCreate(&inflight[b].start)); }
+ 
+     FILE *of = out ? fopen(out, "a") : NULL;
+     if (out && !of) { perror("open --out"); return 2; }
+@@ -759,7 +759,7 @@
+      * the GPU never waits for the CPU: a large unit's exact tests can take tens
+      * of seconds while the next kernels are short ---- */
+     struct Task { Unit U; std::vector<u64> hv; u32 nsurv; bool overflow;
+-                  double gpu_s, prep_s, up_s, wait_s; };
++                  double gpu_s, prep_s, up_s, wait_s, kern_s; };
+     std::deque<Task> tq;
+     std::mutex tq_m;
+     std::condition_variable tq_cv, tq_space;
+@@ -768,7 +768,7 @@
+         Unit &U = T.U;
+         const std::vector<u64> &h_hits = T.hv;
+         const u32 nsurv = T.nsurv; const bool overflow = T.overflow;
+-        const double gpu_s = T.gpu_s, prep_s = T.prep_s, up_s = T.up_s, wait_s = T.wait_s;
++        const double gpu_s = T.gpu_s, prep_s = T.prep_s, up_s = T.up_s, wait_s = T.wait_s, kern_s = T.kern_s;
+         /* ---- stage 3 on the CPU: exact test of each surviving window ---- */
+         double ts3 = lc_now_s();
+         u64 nconf = 0, nbits = 0;
+@@ -828,19 +828,19 @@
+         total_conf += nconf;
+         total_surv += nbits;
+         fprintf(stderr, "K=%llu sh=%llu MOD=%llu thr=%llu res=%.4g tierC=%d "
+-                "surv=%u bits=%llu conf=%llu best=%d gpu=%.2fs cpu=%.2fs prep=%.2fs up=%.3fs wait=%.3fs (%.3g res/s)\n",
++                "surv=%u bits=%llu conf=%llu best=%d gpu=%.2fs cpu=%.2fs prep=%.2fs up=%.3fs wait=%.3fs kern=%.4fs (%.3g res/s)\n",
+                 (unsigned long long)U.K, (unsigned long long)U.shift,
+                 (unsigned long long)MOD, (unsigned long long)U.nthreads,
+                 (double)U.total, U.ntc, nsurv, (unsigned long long)nbits,
+                 (unsigned long long)nconf, global_best, gpu_s, cpu_s, prep_s, up_s, wait_s,
+-                (double)U.total / gpu_s);
++                kern_s, (double)U.total / gpu_s);
+         if (of) {
+             fprintf(of, "{\"K\":%llu,\"shift\":%llu,\"res\":%.6g,\"surv\":%u,"
+-                    "\"conf\":%llu,\"best\":%d,\"gpu_s\":%.2f,\"cpu_s\":%.2f,"
++                    "\"conf\":%llu,\"best\":%d,\"gpu_s\":%.2f,\"cpu_s\":%.2f,\"kern_s\":%.4f,"
+                     "\"covered\":%.6g,\"overflow\":%s}\n",
+                     (unsigned long long)U.K, (unsigned long long)U.shift,
+                     (double)U.total, nsurv, (unsigned long long)nconf, global_best,
+-                    gpu_s, cpu_s, covered, overflow ? "true" : "false");
++                    gpu_s, cpu_s, kern_s, covered, overflow ? "true" : "false");
+             if (hist_mode) {
+             fprintf(of, "{\"hist\":true,\"K\":%llu,\"shift\":%llu,\"runs\":[",
+                     (unsigned long long)U.K, (unsigned long long)U.shift);
+@@ -874,6 +874,10 @@
+         if (!U.valid) return;
+         CK(cudaEventSynchronize(U.done));
+         double gpu_s = lc_now_s() - U.t_launch;
++        float kern_ms = 0.f;   /* start -> done on this stream: includes time the kernel
++                                * shares the SMs with (or queues behind) other MPS clients */
++        if (cudaEventElapsedTime(&kern_ms, U.start, U.done) != cudaSuccess) {
++            (void)cudaGetLastError(); kern_ms = -1000.f; }   /* logged as kern=-1 */
+         u32 nsurv = 0;
+         CK(cudaMemcpyAsync(&nsurv, d_cnt[b], 4, cudaMemcpyDeviceToHost, stream[b]));
+         CK(cudaStreamSynchronize(stream[b]));
+@@ -892,7 +896,7 @@
+ 
+         Task T;
+         T.U = U; T.hv.assign(h_hits.begin(), h_hits.begin() + (size_t)nsurv * 2);
+-        T.nsurv = nsurv; T.overflow = overflow; T.gpu_s = gpu_s;
++        T.nsurv = nsurv; T.overflow = overflow; T.gpu_s = gpu_s; T.kern_s = kern_ms * 1e-3;
+         T.prep_s = prep_s; T.up_s = up_s; T.wait_s = wait_s;
+         {
+             std::unique_lock<std::mutex> lk(tq_m);
+@@ -1244,6 +1248,7 @@
+             U.K = K; U.shift = shift; U.d = d; U.MOD = MOD; U.total = total;
+             U.nthreads = nthreads; U.ntc = ntc; U.valid = true;
+             U.t_launch = lc_now_s();
++            CK(cudaEventRecord(U.start, stream[buf]));
+             u32 blocks = (u32)((nthreads + TPB - 1) / TPB);
+             if (kernel == 1) {
+                 if (ntc > MAXTC_SH) { fprintf(stderr, "FATAL: ntc > MAXTC_SH\n"); return 2; }

@@ -1,0 +1,26 @@
+GPU 0
+ksolo K=17191 sh=4 res=4.67e+09 ntc=608 0.0775s 6.026e+10 res/s
+ksolo K=74579 sh=4 res=6.958e+09 ntc=608 0.1464s 4.752e+10 res/s
+ksolo K=21482 sh=5 res=4.67e+09 ntc=608 0.0710s 6.580e+10 res/s
+ksolo K=47722 sh=6 res=6.958e+09 ntc=608 0.1698s 4.098e+10 res/s
+ksolo K=19607 sh=1 res=4.67e+09 ntc=608 0.0724s 6.449e+10 res/s
+ksolo K=111066 sh=10 res=6.958e+09 ntc=608 0.1700s 4.094e+10 res/s
+ksolo K=17191 sh=4 res=4.67e+09 ntc=608 0.0704s 6.637e+10 res/s
+ksolo K=74579 sh=4 res=6.958e+09 ntc=608 0.1274s 5.462e+10 res/s
+ksolo K=21482 sh=5 res=4.67e+09 ntc=608 0.0737s 6.333e+10 res/s
+ksolo K=47722 sh=6 res=6.958e+09 ntc=608 0.1425s 4.882e+10 res/s
+ksolo K=19607 sh=1 res=4.67e+09 ntc=608 0.0863s 5.413e+10 res/s
+ksolo K=111066 sh=10 res=6.958e+09 ntc=608 0.1695s 4.105e+10 res/s
+GPU 3
+ksolo K=17191 sh=4 res=4.67e+09 ntc=608 0.0955s 4.891e+10 res/s
+ksolo K=74579 sh=4 res=6.958e+09 ntc=608 0.1695s 4.105e+10 res/s
+ksolo K=21482 sh=5 res=4.67e+09 ntc=608 0.0974s 4.794e+10 res/s
+ksolo K=47722 sh=6 res=6.958e+09 ntc=608 0.1866s 3.729e+10 res/s
+ksolo K=19607 sh=1 res=4.67e+09 ntc=608 0.0948s 4.925e+10 res/s
+ksolo K=111066 sh=10 res=6.958e+09 ntc=608 0.1916s 3.631e+10 res/s
+ksolo K=17191 sh=4 res=4.67e+09 ntc=608 0.0925s 5.048e+10 res/s
+ksolo K=74579 sh=4 res=6.958e+09 ntc=608 0.1756s 3.962e+10 res/s
+ksolo K=21482 sh=5 res=4.67e+09 ntc=608 0.0913s 5.116e+10 res/s
+ksolo K=47722 sh=6 res=6.958e+09 ntc=608 0.1765s 3.943e+10 res/s
+ksolo K=19607 sh=1 res=4.67e+09 ntc=608 0.0892s 5.236e+10 res/s
+ksolo K=111066 sh=10 res=6.958e+09 ntc=608 0.1904s 3.654e+10 res/s
