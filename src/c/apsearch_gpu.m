@@ -74,12 +74,12 @@ kernel void sieve(const device ulong *Rpre  [[buffer(0)]],
         ulong Rb = R;
         for (uint i2 = 0; i2 < P.c2; ++i2) {
             // three 17-bit limbs: keeps every index computation in 32 bits
-            uint l0 = (uint)(Rb & 0x1FFFF);
-            uint l1 = (uint)((Rb >> 17) & 0x1FFFF);
-            uint l2 = (uint)(Rb >> 34);
+            uint l0 = (uint)(Rb & 0x7FFFF);
+            uint l1 = (uint)((Rb >> 19) & 0x7FFFF);
+            uint l2 = (uint)(Rb >> 38);
             ulong sito = ~0UL;
             for (uint t = 0; t < P.ntc; ++t) {
-                uint idx = (l0 + l1 * k1[t] + l2 * k2[t]) % rp[t];
+                uint idx = (l0 + l1 * k1[t] + l2 * k2[t]) % rp[t];   // k = 2^19, 2^38 mod r
                 sito &= words[off[t] + idx];
                 if (sito == 0UL) break;
             }
@@ -124,8 +124,9 @@ int main(int argc, char **argv) {
     }
     if (!kmax) kmax = kmin;
     if (D0 % 3) { fprintf(stderr, "FATAL: 3 must divide D0\n"); return 2; }
-    if (b2 > 16000) { fprintf(stderr, "FATAL: --b2 > 16000 would overflow the "
-                              "32-bit limb fold\n"); return 2; }
+    /* 19-bit limbs: l1*k1 + l2*k2 < 2*2^19*b2 must stay under 2^32 */
+    if (b2 > 4000) { fprintf(stderr, "FATAL: --b2 > 4000 would overflow the "
+                             "32-bit limb fold at 19-bit limbs\n"); return 2; }
     build_small_primes(10000);
 
     /* ---- Metal setup ---- */
@@ -174,8 +175,8 @@ int main(int argc, char **argv) {
         }
         #undef ADDC
         if (ntb < 4) { fprintf(stderr, "K=%llu: too few tier-B primes\n", K); continue; }
-        if (MOD >= (1ULL << 51)) { fprintf(stderr, "FATAL: MOD >= 2^51 breaks the "
-                                   "17-bit limb split\n"); return 2; }
+        if (MOD >= (1ULL << 57)) { fprintf(stderr, "FATAL: MOD >= 2^57 breaks the "
+                                   "19-bit limb split\n"); return 2; }
 
         /* ---- CRT ---- */
         u64 R0 = 0, sstep[MAXC], subcyc[MAXC];
@@ -276,8 +277,8 @@ int main(int argc, char **argv) {
             for (int t = 0; t < ntc; t++) {
                 u64 r = tcp[t];
                 offs[t] = (u32)acc; rps[t] = (u32)r;
-                k1s[t] = (u32)(((u64)1 << 17) % r);
-                k2s[t] = (u32)(((u64)1 << 34) % r);
+                k1s[t] = (u32)(((u64)1 << 19) % r);
+                k2s[t] = (u32)(((u64)1 << 38) % r);
                 char *ok = calloc(r, 1);
                 if (D0 % r == 0) { for (u64 x = 0; x < r; x++) ok[x] = (x != 0); }
                 else {

@@ -11,7 +11,11 @@ what to do next. Keep it current; it outranks memory and chat history.
 
 ## 0. Hard deadline and method constraints (added 2026-10-02 17:27 CDT)
 
-- **Deadline: 2026-10-03 05:27 CDT (12 hours from 2026-10-02 17:27 CDT).** The `n >= 58`
+- **AMENDED 2026-10-02 ~21:45 CDT: the user's directive is now "keep going until you find 57".**
+  The 12-hour deadline below is superseded as a stop condition; it remains the planning
+  horizon for the current campaign phase. The stop condition is a verified n >= 57
+  (n >= 58 remains the aspiration if 57 falls).
+- Original deadline: 2026-10-03 05:27 CDT (12 hours from 2026-10-02 17:27 CDT). The `n >= 58`
   result must be verified, recorded in `records.json`, and written up in `ANSWER.md` before
   then. Budget backwards from the deadline: reserve the last 45 minutes for verification,
   independent cross-check, `ANSWER.md`, and commits. If the deadline is close and no `n >= 58`
