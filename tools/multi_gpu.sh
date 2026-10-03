@@ -20,7 +20,7 @@ E=experiments/remote; mkdir -p $E
 j=0
 for g in $GPUS; do
   for p in $(seq 1 $PPG); do
-    CUDA_VISIBLE_DEVICES=$g OMP_WAIT_POLICY=passive setsid nohup ./build/apsearch_cuda --nterms 58 --units "$PLAN" \
+    CUDA_VISIBLE_DEVICES=$g OMP_NUM_THREADS=$TH OMP_WAIT_POLICY=passive setsid nohup ./build/apsearch_cuda --nterms 58 --units "$PLAN" \
         --slice $j $N --modcap ${MODCAP:-20000000000000000} --b2 10000 --report 44 \
         --threads $TH ${EXTRA:---kernel 31 --t0 24} --out "$E/${TAG}_s${j}.jsonl" --resume \
         >> "$E/${TAG}_s${j}.log" 2>&1 < /dev/null &
