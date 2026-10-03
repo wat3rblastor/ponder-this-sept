@@ -222,3 +222,44 @@ step (the descending scan means the last qualifying `a` seen is the smallest).
   ≤ 2·10⁸** — longest runs in the family top out at 27–29. Exhaustive negative result.
 - `L = 4e8`, `m = 1..2100` in progress. The productive sub-family is `m ≡ 0 mod 667`
   (`d` divisible by `23·29`), where removing those two cliffs is worth ~130×.
+
+---
+
+## 2026-10-03 (session 1 continued, ~19:00–) — GPU port, record n = 47
+
+### Record improved: n = 43 → **n = 47**
+
+`a = 2646171143023357`, `d = 78342989618850 = 2·3·5²·11·17·23·29·41²·47·53` (`K = 205`),
+last term `6249948665490457`. Verified by `src/verify.py` (maximal at both ends) and by the
+constructive cross-check. Found within minutes of the GPU engine going live.
+
+### Metal GPU port (`src/c/apsearch_gpu.m`): 4.1e8 residues/s, ~9× the whole CPU
+
+Profiling had put ~164 of the CPU engine's 172 ns per residue in stage 2, which is
+embarrassingly parallel over ~5·10⁹ independent residues per work unit. One GPU thread per
+prefix of the additive loop nest, each walking the two innermost levels.
+
+- **The trap that decides it:** 64-bit `%` on the Apple GPU is ~15× slower than 32-bit and
+  would make the GPU *lose* to the CPU. `R < MOD < 2^51` is therefore split into three 17-bit
+  limbs and folded with precomputed `2^17`, `2^34` residues; the fold is `< 2^32` for
+  `b2 ≤ 16000`, asserted at startup.
+- Only 64-bit add/compare/subtract are needed on device (MSL has no 128-bit type), so the
+  per-thread start residues are computed host-side where `mulmod` exists.
+- Deepening tier C to 10000 drops survivors to ~480 per unit, so the CPU-side exact test costs
+  1.6 s against the GPU's 11.3 s and is no longer a bottleneck.
+- Validated by reproducing the n=43 record at its own work unit, K=128.
+- `loesch_core.h` now holds the exact Loeschian test, shared by both engines rather than
+  duplicated — divergence between two copies of that function is exactly the bug that would
+  invalidate a record silently.
+
+**Bug worth remembering:** the Metal buffers were allocated inside the work-unit loop but
+released only when `main()` returned (a single outer `@autoreleasepool`), leaking ~100 MB per
+unit. The machine went to 9.9 GB of swap and units took 420 s instead of 12. Also: `pkill -f`
+with narrow patterns had left 14 stray workers alive earlier, costing 4.9 GB — check
+`ps | grep -c` after killing, not just the pattern you think you used.
+
+### Tooling
+
+`tools/promote.py` is now the only way a record is recorded: it refuses any candidate that does
+not pass **both** verifiers, appends the superseded record to history, and regenerates
+`ANSWER.md` from `records.json` so the answer file cannot drift from the data.
