@@ -288,3 +288,28 @@ the bitmap (4.3×) and the number of steps (4.3×) — 18× less work, and it fi
 Also note this falsifies, in the useful direction, the calibrated prediction that the n=35
 optimum would be near `1.3e9`: the truth is `3.1e8`. Model estimates of *where* a record lies
 are worth far less than an exhaustive sweep when the space is small enough to exhaust.
+
+---
+
+## 2026-10-02 ~22:00 CDT — paused by user; clean resumable state
+
+All search processes stopped at the user's request. State at pause:
+
+- **G3 record: n = 47** (`a = 2646171143023357`, `d = 78342989618850`), verified both ways,
+  maximal at both ends. G1 is **proved optimal** (35 terms, last term 311958331).
+- Shift-0 exhaustion of `K = 1..3365` (d = K·D0, a < 64·MOD ≈ 7.3e16, tier B
+  {3,2,5,59,71,83,89,101,107,113}): **complete through K = 784** (GPU logs
+  `experiments/2026-10-03-gpu/g2/g4/g5.log`), plus scattered earlier CPU coverage of
+  K ≤ 672 at the pre-fix engine (see 2026-10-03-ap58*). CPU band K = 3366..9365 partially
+  covered (`2026-10-03-cpu2/c*.jsonl`, interrupted).
+- **Resume with:**
+  `./build/apsearch_gpu --nterms 58 --kmin 785 --kmax 3365 --shifts 1 --modcap 2000000000000000 --b2 10000 --report 48 --out experiments/2026-10-03-gpu/g6.jsonl`
+  plus CPU workers on disjoint `--kmin/--kmax` bands, plus `tools/autopromote.sh 60 &`.
+- Ready on the shelf: the 19-bit-limb GPU build (`build/apsearch_gpu2`, validated) for
+  deep-pinned tier B including 131 (MOD up to 2^57) — the right tool only for a multi-day
+  campaign at term sizes ~1e18, not for short runs.
+- Expected-value note for the next session: exhausting the remaining shift-0 region is
+  [0.04, 0.8] expected 57-finds depending on which calibration branch is right (n=47 anchor
+  vs fixed-T decay model); after that, shift planes 1-2 repeat the same economics on fresh
+  space. User directive on record: keep going until n >= 57 (GOAL.md §0), M2 on-chip GPU
+  allowed, no rented hardware.
