@@ -9,15 +9,7 @@ what to do next. Keep it current; it outranks memory and chat history.
 
 ---
 
-## START HERE (method, rewritten 2026-10-03)
-
-**Read `GOAL2.md` first.** It is the method contract: `n >= 58` is reachable with the computation
-on this laptop, the orchestrator plans and agents implement, and throughput is never a plan.
-`GOAL.md` (this file) remains the authority on the problem, the mathematics, the verifier
-contract and the stop condition. The GPU run book below is kept for reference only -- it is
-execution, not strategy, and under GOAL2.md it is not a plan.
-
-## Reference: the GPU run book (superseded as strategy by GOAL2.md)
+## START HERE (GPU run book)
 
 State: best verified is **n = 55** (two distinct progressions, `records.json` / `ANSWER.md` §5);
 target is a verified **n >= 58** (a 57 is a waypoint: promote it, keep going). The search moved
