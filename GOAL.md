@@ -9,6 +9,36 @@ what to do next. Keep it current; it outranks memory and chat history.
 
 ---
 
+## START HERE if you are a fresh session on a multi-GPU machine (added 2026-10-03 04:40 UTC)
+
+State: record is **n = 55** (`records.json`); target is a verified **n >= 58**, as fast as
+possible. The engine, planner and launcher already exist and are validated. **Do not redesign,
+re-derive or re-benchmark anything: build, launch, watch, verify.** Read `RENTED_GPU.md` and the
+last section of `PROGRESS.md`, then run exactly:
+
+```
+make check                                   # python unit tests + CPU sieve build
+tools/build_here.sh                          # builds for this GPU; must print best=47 for K=205
+MODCAP=2e16 python3 tools/plan_units.py --budget-res 2e16 --kmax 600000 --smax 3000 \
+    --k-drop-mod 41 --out experiments/remote_plan.txt      # ranked (K, shift) units, done ones excluded
+tools/multi_gpu.sh experiments/remote_plan.txt r1          # one engine per GPU, disjoint slices
+tools/autopromote.sh 60 &                    # verifies (2 checkers) + records + commits new bests
+```
+
+- Work split between machines is by rule, no coordination needed: **this multi-GPU box takes every
+  K not divisible by 41; the original single-GPU box takes K divisible by 41.**
+- Progress: `grep -h '\*\*\* n=' experiments/remote/*.log | sort -t= -k2 -n | tail`. Each engine prints
+  only its own improving bests. Throughput: about 1.5e10 residues/s per GB10-class GPU; an
+  RTX 5090 / RTX PRO 6000 should be several times that (measure with `build_here.sh`).
+- The engines stop themselves when any log shows a run >= 58. Then: `tools/promote.py <a> <d> <n>`
+  (must pass `src/verify.py` and `src/crosscheck.py`), confirm `records.json` and `ANSWER.md`
+  updated, append a PROGRESS.md entry, commit, push, report to the user. That is the finish line (§8).
+- If an engine dies, rerun the same `tools/multi_gpu.sh` line: finished units are skipped.
+- Expected: roughly 0.7 hits of length 58 per 12 GB10-GPU-hours of the best units, with
+  diminishing returns; a 56 or 57 is likely on the way and is promoted automatically.
+
+---
+
 ## 0. Hard deadline and method constraints (added 2026-10-02 17:27 CDT)
 
 - **DEADLINE (user, 2026-10-03 ~03:50 UTC, verbatim): "I need it 58 within 12 hours."** i.e. by

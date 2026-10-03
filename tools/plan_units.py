@@ -55,9 +55,11 @@ def main():
     ap.add_argument("--kmax", type=int, default=200000)
     ap.add_argument("--smax", type=int, default=64)
     ap.add_argument("--out", default=None)
-    ap.add_argument("--done-glob", default="experiments/2026-10-03-cuda/*.jsonl")
+    ap.add_argument("--done-glob", default="experiments/*/*.jsonl")
     ap.add_argument("--old-plane0-kmax", type=int, default=1949,
                     help="shift 0 is covered for K <= this by the reduced-kernel campaigns")
+    ap.add_argument("--k-keep-mod", type=int, default=0, help="only K with K %% M == 0 (the small box's share)")
+    ap.add_argument("--k-drop-mod", type=int, default=0, help="skip K with K %% M == 0 (the big box's share)")
     args = ap.parse_args()
 
     done = set()
@@ -94,6 +96,8 @@ def main():
             v2, _ = val(shapes[K], K, s + 1)
             if v2 is not None: heapq.heappush(heap, (-v2, K, s + 1))
         if (K, s) in done or (s == 0 and K <= args.old_plane0_kmax): continue
+        if args.k_keep_mod and K % args.k_keep_mod: continue
+        if args.k_drop_mod and K % args.k_drop_mod == 0: continue
         res = shapes[K][1]
         plan.append((K, s, -nv - refv))
         spent += res
