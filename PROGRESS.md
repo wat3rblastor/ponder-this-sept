@@ -500,3 +500,11 @@ holds only (41/65)(47/83)(53/101) ~ 19% of the 58-term progressions at a given t
 square-option sub-families for 41/47/53 hold the other ~81% (~5x). Per-term pass rate (unsieved
 beyond Q, Monte Carlo): 0.571 at 1e12, 0.468 at 1e18, 0.414 at 1e24 for Q = 53. Smaller terms
 matter far more than anything else, which is why the square-option pools are the next step.
+
+Addendum (elliptic-curve agent, `exp_ec/`, first numbers 06:55 UTC): the 3-square version works
+mechanically but looks dead for 57/58. Shape a = 3X^2 + m^2-type with three bases gives at most
+31 automatic positions of 57 (32 of 58); four bases 39/40 (greedy). Of 174 index-difference pairs
+with >= 30 coverage, 104 curves have rank 0, 66 rank 1, 4 rank 2. The small bad primes cannot be
+confined to automatic positions, so 5, 11, 17, 23, 29 must divide m; the smallest point with
+623645 | m found has a 34-digit m (72-digit terms). Exact test of that point: automatic positions
+never fail, but only 6 of 35 resolved non-automatic terms are Loeschian (~17%); longest run 6.
