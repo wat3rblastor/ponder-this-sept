@@ -263,3 +263,28 @@ with narrow patterns had left 14 stray workers alive earlier, costing 4.9 GB —
 `tools/promote.py` is now the only way a record is recorded: it refuses any candidate that does
 not pass **both** verifiers, appends the superseded record to history, and regenerates
 `ANSWER.md` from `records.json` so the answer file cannot drift from the data.
+
+### G1 SOLVED OPTIMALLY (proof, not best effort): last term 311958331
+
+`a = 219830911`, `d = 2709630 = 2·3²·5·7·11·17·23` (`d/5610 = 483`), 35 terms,
+last term **311958331** — 4.3× smaller than the 1345651183 recorded earlier (which was merely
+the 35-prefix of the n=36 run found during calibration).
+
+**Why it is optimal.** For `n = 35`, every bad prime `p` with `2p ≤ 35` (so 2, 5, 11, 17) must
+divide `d`: among 35 consecutive indices at least two terms are divisible by `p`, each needs
+`p² |`, and their difference is `p·j·d` with `j < p`, forcing `p | d`. Together with the forced
+3, `d` is necessarily a multiple of `lcm(3,2,5,11,17) = 5610`. Any 35-term AP with last term
+`≤ 311958331` therefore has `34d ≤ 311958331`, i.e. `m = d/5610 ≤ 1635`.
+`experiments/2026-10-03-g1opt` swept **all** `m = 1..1638` against **all** `a`, with every term
+`≤ 311958331`, and found **exactly one** 35-term AP — this one. Hence no 35-term Loeschian AP
+has a smaller last term. Both verifiers pass and the run is maximal at both ends.
+
+Method note worth keeping: the first attempt at this proof set the bound at the then-record
+1345651183, which needed `m ≤ 7062` and a 169 MB bitmap per worker — ~3 h and it drove the
+machine into swap. Once the sweep *found* 311958331, re-running with that as the bound cut both
+the bitmap (4.3×) and the number of steps (4.3×) — 18× less work, and it finished in 10 minutes.
+**Tighten the bound as soon as the search improves it.**
+
+Also note this falsifies, in the useful direction, the calibrated prediction that the n=35
+optimum would be near `1.3e9`: the truth is `3.1e8`. Model estimates of *where* a record lies
+are worth far less than an exhaustive sweep when the space is small enough to exhaust.

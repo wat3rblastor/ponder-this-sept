@@ -356,3 +356,7 @@ K=551 sh=0 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=436 conf
 K=552 sh=0 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=474 conf=474 best=47 gpu=23.08s cpu=0.81s (2.02e+08 res/s)
 K=553 sh=0 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=473 conf=473 best=47 gpu=20.39s cpu=0.88s (2.29e+08 res/s)
 K=554 sh=0 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=474 conf=474 best=47 gpu=22.01s cpu=0.83s (2.12e+08 res/s)
+K=555 sh=0 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=409 conf=409 best=47 gpu=22.45s cpu=1.30s (2.08e+08 res/s)
+K=556 sh=0 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=463 conf=463 best=47 gpu=12.53s cpu=1.43s (3.73e+08 res/s)
+K=557 sh=0 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=607 surv=539 conf=537 best=47 gpu=13.39s cpu=1.63s (3.49e+08 res/s)
+K=558 sh=0 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=493 conf=493 best=47 gpu=12.74s cpu=1.43s (3.66e+08 res/s)
