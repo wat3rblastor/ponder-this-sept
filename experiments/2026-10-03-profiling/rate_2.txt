@@ -1,0 +1,25 @@
+s 0 gpu0 4.479e+10 res/s units=255
+s 1 gpu0 1.035e+11 res/s units=262
+s 2 gpu1 7.312e+10 res/s units=131
+s 3 gpu1 6.909e+10 res/s units=134
+s 4 gpu2 5.175e+10 res/s units=120
+s 5 gpu2 4.253e+10 res/s units=164
+s 6 gpu3 1.647e+10 res/s units=51
+s 7 gpu3 4.620e+10 res/s units=106
+s 8 gpu4 3.523e+10 res/s units=126
+s 9 gpu4 4.652e+10 res/s units=146
+s10 gpu5 4.057e+10 res/s units=114
+s11 gpu5 3.691e+10 res/s units=177
+s12 gpu6 4.120e+10 res/s units=172
+s13 gpu6 6.222e+10 res/s units=179
+s14 gpu7 4.210e+10 res/s units=138
+s15 gpu7 5.476e+10 res/s units=96
+GPU0 1.483e+11
+GPU1 1.422e+11
+GPU2 9.429e+10
+GPU3 6.267e+10
+GPU4 8.175e+10
+GPU5 7.748e+10
+GPU6 1.034e+11
+GPU7 9.686e+10
+AGG 8.0698e+11 res/s over 60.5s units=2371

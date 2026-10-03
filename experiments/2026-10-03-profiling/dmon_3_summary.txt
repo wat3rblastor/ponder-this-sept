@@ -1,0 +1,9 @@
+['gpu', 'pwr', 'gtemp', 'mtemp', 'sm', 'mem', 'enc', 'dec', 'jpg', 'ofa', 'mclk', 'pclk', 'fb', 'bar1', 'ccpm']
+0 n 62 sm% mean 100.0 min 100  <90: 0 pwr 549
+1 n 62 sm% mean 100.0 min 100  <90: 0 pwr 549
+2 n 62 sm% mean 100.0 min 100  <90: 0 pwr 549
+3 n 62 sm% mean 100.0 min 100  <90: 0 pwr 549
+4 n 62 sm% mean 100.0 min 100  <90: 0 pwr 549
+5 n 62 sm% mean 100.0 min 100  <90: 0 pwr 549
+6 n 62 sm% mean 100.0 min 100  <90: 0 pwr 549
+7 n 62 sm% mean 100.0 min 100  <90: 0 pwr 549

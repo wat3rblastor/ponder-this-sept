@@ -1,0 +1,12 @@
+usage_usec 159485642810 user_usec 158931699571 system_usec 553943238 core_sched.force_idle_usec 0 nr_periods 11436 nr_throttled 6286 throttled_usec 4353058484 nr_bursts 0 burst_usec 0 
+usage_usec 174226503018 user_usec 173647808766 system_usec 578694251 core_sched.force_idle_usec 0 nr_periods 12036 nr_throttled 6867 throttled_usec 4698869713 nr_bursts 0 burst_usec 0 
+usage_usec 14740860208
+user_usec 14716109195
+system_usec 24751013
+core_sched.force_idle_usec 0
+nr_periods 600
+nr_throttled 581
+throttled_usec 345811229
+nr_bursts 0
+burst_usec 0
+cores used avg 245.68100346666665
