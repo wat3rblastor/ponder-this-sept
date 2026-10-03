@@ -44,6 +44,8 @@
 #include <vector>
 #include <deque>
 #include <thread>
+#include <memory>
+#include <unistd.h>
 #include <mutex>
 #include <condition_variable>
 #include <set>
@@ -553,6 +555,56 @@ sieve_fs(const u64 *__restrict__ Rpre, const u64 *__restrict__ words,
     }
 }
 
+#include "kernels_cmp.cuh"
+
+/* DIAGNOSTIC (KFIX env): every lane runs exactly P.ntc rows per group, no exit test,
+ * no hit output; measures cost per lane-row at full lane utilisation. */
+template <int NCH, int U>
+__global__ void __launch_bounds__(256)
+sieve_diag(const u64 *__restrict__ Rpre, const u64 *__restrict__ words,
+              Params P, u32 *cnt, u64 *hits)
+{
+    u32 gid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (gid >= P.nthreads) return;
+    u64 A1 = Rpre[gid];
+    const u64 sG = P.s2 * NCH;
+    u64 acc = 0;
+    for (u32 i1 = 0; i1 < P.c1; ++i1) {
+        u64 Ag = A1;
+        for (u32 i2 = 0; i2 < P.c2; i2 += NCH) {
+            u32 l0 = (u32)(Ag & 0xFFFF), l1 = (u32)((Ag >> 16) & 0xFFFF);
+            u32 l2 = (u32)((Ag >> 32) & 0xFFFF), l3 = (u32)(Ag >> 48);
+            u64 sito[NCH];
+            #pragma unroll
+            for (int c = 0; c < NCH; c++) sito[c] = ~0ULL;
+            for (u32 t = 0; t < P.ntc; t += U) {
+                const u64 *w[U];
+                #pragma unroll
+                for (int u = 0; u < U; u++) {
+                    u32 p = c_rp[t + u];
+                    u32 x = l0 * c_k0[t + u] + l1 * c_k1[t + u] + l2 * c_k2[t + u] + l3 * c_k3[t + u];
+                    u32 y = x - __umulhi(x, c_mag[t + u]) * p;
+                    if (y >= p) y -= p;
+                    if (y >= p) y -= p;
+                    w[u] = words + c_off[t + u] + (y & P.cap);
+                }
+                #pragma unroll
+                for (int c = 0; c < NCH; c++) {
+                    u64 v = w[0][c];
+                    #pragma unroll
+                    for (int u = 1; u < U; u++) v &= w[u][c];
+                    sito[c] ^= v;
+                }
+            }
+            #pragma unroll
+            for (int c = 0; c < NCH; c++) acc += sito[c];
+            Ag += sG;
+        }
+        A1 += P.s1;
+    }
+    if (acc == 0x123456789ULL) atomicAdd(cnt, 1u);
+}
+
 /* ------------------------------------------------------------------ host --- */
 
 struct comp { u64 m, s, t, c; };
@@ -580,9 +632,12 @@ int main(int argc, char **argv) {
     const char *out = NULL, *units_file = NULL;
     u64 slice_i = 0, slice_n = 1;    /* --slice i n: take plan entries with index % n == i */
     bool verify_mode = false, resume = false, hist_mode = false;
+    int tqdepth = 64;                /* stage-3 queue depth (units waiting for exact tests) */
+    int nprep = 12;                  /* host-prep threads (units prepared ahead of the GPU) */
     int nomp = 0, kernel = 20;       /* strided groups; see the kernel comments for the measured ladder */
     u64 shbytes = 65536;
     int unr = 4;                     /* primes per exit test in the strided kernel */
+    int ct0 = 28, tv = 0, cmp = 1;   /* --kernel 30/31 */
     int nch = 7;                     /* group size for the strided kernel (--kernel 20) */
 
     for (int i = 1; i < argc; i++) {
@@ -600,10 +655,15 @@ int main(int argc, char **argv) {
         else if (!strcmp(k, "--D0")) D0 = strtoull(NEXT(), NULL, 10);
         else if (!strcmp(k, "--threads")) nomp = atoi(NEXT());
         else if (!strcmp(k, "--kernel")) kernel = atoi(NEXT());
+        else if (!strcmp(k, "--prep")) nprep = atoi(NEXT());
+        else if (!strcmp(k, "--tq")) tqdepth = atoi(NEXT());
         else if (!strcmp(k, "--units")) units_file = NEXT();
         else if (!strcmp(k, "--slice")) { slice_i = strtoull(NEXT(), NULL, 10); slice_n = strtoull(NEXT(), NULL, 10); if (!slice_n || slice_i >= slice_n) { fprintf(stderr, "bad --slice\n"); return 2; } }
         else if (!strcmp(k, "--nch")) nch = atoi(NEXT());
         else if (!strcmp(k, "--unr")) unr = atoi(NEXT());
+        else if (!strcmp(k, "--t0")) ct0 = atoi(NEXT());
+        else if (!strcmp(k, "--tv")) tv = atoi(NEXT());
+        else if (!strcmp(k, "--cmp")) cmp = atoi(NEXT());
         else if (!strcmp(k, "--shbytes")) shbytes = strtoull(NEXT(), NULL, 10);
         else if (!strcmp(k, "--verify")) verify_mode = true;
         else if (!strcmp(k, "--resume")) resume = true;
@@ -670,13 +730,28 @@ int main(int argc, char **argv) {
     if (out && !of) { perror("open --out"); return 2; }
 
     int global_best = 0;
+    const bool kbench = getenv("KBENCH") != NULL; double kb_total = 0;
+    const u32 TPB = getenv("KTPB") ? (u32)atoi(getenv("KTPB")) : 256u;
     double t0 = lc_now_s(), covered = 0;
     u64 units = 0, total_conf = 0, total_surv = 0;
 
-    /* host-side scratch, reused across units */
-    std::vector<u64> Rpre, words;
-    std::vector<u32> offs, rps, mags, k1s, k2s, k3s, k0s;
-    u64 tcp[MAXTC];
+    /* ---- host prep is done ahead of the GPU by a pool of threads (one unit per
+     * thread, serial inside), delivered to the launch loop in plan order ---- */
+    /* page-locked, grow-only host buffer: uploads from it are true async DMA copies
+     * (pageable uploads from the prep threads' buffers were measured 10-40x slower) */
+    struct PinBuf { u64 *p = NULL; size_t n = 0, cap = 0;
+        void resize(size_t m) {
+            if (m > cap) { if (p) cudaFreeHost(p);
+                if (cudaHostAlloc((void **)&p, m * 8, cudaHostAllocDefault) != cudaSuccess) {
+                    fprintf(stderr, "FATAL: cudaHostAlloc %zu bytes\n", m * 8); fflush(NULL); _exit(2); }
+                cap = m; }
+            n = m; }
+        u64 *data() { return p; }
+        u64 &operator[](size_t i) { return p[i]; } };
+    struct Prep { int status; u64 K, shift, d, MOD, s1, s2, nthreads, total, tot_words;
+                  u32 c1, c2; int ntc; double ksetup_s, prep_s;
+                  PinBuf Rpre, words;
+                  std::vector<u32> offs, rps, mags, k1s, k2s, k3s, k0s; u64 tcp5[5]; };
     double prep_s = 0, up_s = 0, wait_s = 0, ksetup_s = 0, fin_s = 0, launch_s = 0;
 
     /* ---- finish a unit: wait for its kernel, pull survivors, stage 3 ---- */
@@ -821,7 +896,7 @@ int main(int argc, char **argv) {
         T.prep_s = prep_s; T.up_s = up_s; T.wait_s = wait_s;
         {
             std::unique_lock<std::mutex> lk(tq_m);
-            tq_space.wait(lk, [&] { return tq.size() < 3; });
+            tq_space.wait(lk, [&] { return tq.size() < (size_t)tqdepth; });
             tq.push_back(std::move(T));
         }
         tq_cv.notify_one();
@@ -842,16 +917,14 @@ int main(int argc, char **argv) {
         for (u64 K = kmin; K <= kmax; K++)
             for (u64 sh = shift0; sh < shift0 + shifts; sh++) ulist.push_back(std::make_pair(K, sh));
     }
-    bool first_unit = true;
-    int buf = 0;
-    for (size_t ui = 0; ui < ulist.size() && !stop_requested; ui++) {
-        if (ui % slice_n != slice_i) continue;
-        const u64 K = ulist[ui].first;
-        shift0 = ulist[ui].second; shifts = 1;
-        if (!done_units.empty() && done_units.count(unit_key(K, shift0))) continue;
+    auto prepare = [&](const u64 K, const u64 shift, Prep &PP) -> int {
+        PinBuf &Rpre = PP.Rpre, &words = PP.words;
+        std::vector<u32> &offs = PP.offs, &rps = PP.rps, &mags = PP.mags, &k1s = PP.k1s,
+                         &k2s = PP.k2s, &k3s = PP.k3s, &k0s = PP.k0s;
+        std::vector<u64> tcpv(MAXTC); u64 *tcp = tcpv.data();
         double t_ks = lc_now_s();
         u64 d = K * D0;
-        if (d / D0 != K) { fprintf(stderr, "K overflow at %llu\n", (unsigned long long)K); break; }
+        if (d / D0 != K) { fprintf(stderr, "K overflow at %llu\n", (unsigned long long)K); return 3; }
 
         /* ---- stage-1 components (identical rules to apsearch.c) ---- */
         comp C[MAXC]; int nc = 0; u64 MOD = 1;
@@ -870,7 +943,7 @@ int main(int argc, char **argv) {
             ntb++;
         }
         #undef ADDC
-        if (ntb < 4) { fprintf(stderr, "K=%llu: too few tier-B primes\n", (unsigned long long)K); continue; }
+        if (ntb < 4) { fprintf(stderr, "K=%llu: too few tier-B primes\n", (unsigned long long)K); return 1; }
 
         /* ---- CRT ---- */
         u64 R0 = 0, sstep[MAXC], subcyc[MAXC];
@@ -896,7 +969,7 @@ int main(int argc, char **argv) {
             if (in2 < 0 || C[i].c > C[in2].c) { in1 = in2; in2 = i; }
             else if (in1 < 0 || C[i].c > C[in1].c) { in1 = i; }
         }
-        if (in1 < 0 || in2 < 0) { fprintf(stderr, "K=%llu: no inner loops\n", (unsigned long long)K); continue; }
+        if (in1 < 0 || in2 < 0) { fprintf(stderr, "K=%llu: no inner loops\n", (unsigned long long)K); return 1; }
 
         u64 nthreads = 1, total = 1;
         for (int i = 0; i < nc; i++) {
@@ -963,7 +1036,7 @@ int main(int argc, char **argv) {
             /* unreduced walk: A < MOD * (1 + c1 + c2 + nch) must fit in 64 bits */
             if (b2 > 16383 || MOD >= (1ULL << 56) || C[in1].c + C[in2].c + (u64)nch >= 255) {
                 fprintf(stderr, "K=%llu: strided kernel needs b2 <= 16383, MOD < 2^56; skipping\n",
-                        (unsigned long long)K); continue; }
+                        (unsigned long long)K); return 1; }
         }
         u64 tot_words = 0;
         for (int i = 0; i < ntc; i++) tot_words += tcp[i] + pad;
@@ -990,6 +1063,117 @@ int main(int argc, char **argv) {
                 }
                 acc += r + pad;
             }
+        }
+        {
+            u64 boff = shift * 64;
+            double t_prep = lc_now_s();
+            PP.ksetup_s = t_prep - t_ks;
+            std::vector<u64> tmp;
+            for (int t = 0; t < ntc; t++) {
+                u64 r = tcp[t], acc = offs[t];
+                if (t >= ntc_real) { for (u64 y = 0; y < r + pad; y++) words[acc + y] = ~0ULL; continue; }
+                /* bit b of W[x] is ok[(x + b0 + b*modr) mod r]; ok has only a few zeros
+                 * (the nterms forbidden residues, or just 0 when r | D0), so start from
+                 * all-ones and clear, for each zero z and bit b, x = z - b0 - b*modr:
+                 * O(zeros * 64) per prime instead of O(r * 64), same table */
+                u64 modr = MOD % r;
+                u64 b0 = lc_mulmod(boff % r, modr, r);
+                tmp.resize(r);
+                u64 *dst = &words[acc];
+                if (kernel >= 20) dst = tmp.data();
+                for (u64 x = 0; x < r; x++) dst[x] = ~0ULL;
+                {
+                    const u64 nz = (D0 % r == 0) ? 1 : nterms, dm = d % r;
+                    u64 v = 0;
+                    for (u64 kk = 0; kk < nz; kk++) {
+                        u64 x = (v + r - b0) % r;
+                        for (int b = 0; b < 64; b++) {
+                            dst[x] &= ~((u64)1 << b);
+                            x = (x >= modr) ? x - modr : x + r - modr;
+                        }
+                        v = (v + r - dm) % r;
+                    }
+                }
+                if (kernel >= 20) {          /* W'[y] = W[(y * s2) mod r], plus wrap pad */
+                    u64 s2r = sstep[in2] % r, x = 0;
+                    for (u64 y = 0; y < r + pad; y++) {
+                        words[acc + y] = tmp[x];
+                        x += s2r; if (x >= r) x -= r;
+                    }
+                }
+            }
+
+            PP.prep_s = lc_now_s() - t_prep;
+        }
+        PP.K = K; PP.shift = shift; PP.d = d; PP.MOD = MOD; PP.s1 = sstep[in1]; PP.s2 = sstep[in2];
+        PP.c1 = (u32)C[in1].c; PP.c2 = (u32)C[in2].c; PP.nthreads = nthreads; PP.total = total;
+        PP.ntc = ntc; PP.tot_words = tot_words;
+        for (int i = 0; i < 5; i++) PP.tcp5[i] = tcp[i];
+        return 0;
+    };
+    std::vector<std::pair<u64, u64> > jobs;
+    for (size_t ui = 0; ui < ulist.size(); ui++) {
+        if (ui % slice_n != slice_i) continue;
+        if (!done_units.empty() && done_units.count(unit_key(ulist[ui].first, ulist[ui].second))) continue;
+        jobs.push_back(ulist[ui]);
+    }
+    std::vector<Prep *> slot(jobs.size(), (Prep *)NULL);
+    std::mutex pq_m; std::condition_variable pq_cv;
+    size_t pq_next = 0, pq_consumed = 0; bool pq_quit = false;
+    const size_t pq_window = (size_t)nprep * 2;
+    std::vector<Prep *> pq_free;
+    std::vector<std::thread> preppers;
+    for (int w = 0; w < nprep; w++) preppers.emplace_back([&]() {
+        for (;;) {
+            size_t j;
+            {
+                std::unique_lock<std::mutex> lk(pq_m);
+                pq_cv.wait(lk, [&] { return pq_quit || (pq_next < jobs.size() && pq_next < pq_consumed + pq_window); });
+                if (pq_quit) return;
+                j = pq_next++;
+            }
+            Prep *pp = NULL;
+            {
+                std::lock_guard<std::mutex> lk(pq_m);
+                if (!pq_free.empty()) { pp = pq_free.back(); pq_free.pop_back(); }
+            }
+            if (!pp) pp = new Prep();     /* recycled: the big vectors keep their capacity */
+            pp->status = prepare(jobs[j].first, jobs[j].second, *pp);
+            { std::lock_guard<std::mutex> lk(pq_m); slot[j] = pp; }
+            pq_cv.notify_all();
+        }
+    });
+    auto prep_shutdown = [&]() {
+        { std::lock_guard<std::mutex> lk(pq_m); pq_quit = true; }
+        pq_cv.notify_all();
+        for (auto &t : preppers) t.join();
+    };
+    bool first_unit = true;
+    int buf = 0;
+    for (size_t ji = 0; ji < jobs.size() && !stop_requested; ji++) {
+        Prep *ppp;
+        {
+            std::unique_lock<std::mutex> lk(pq_m);
+            pq_cv.wait(lk, [&] { return slot[ji] != NULL; });
+            ppp = slot[ji]; slot[ji] = NULL; pq_consumed = ji + 1;
+        }
+        pq_cv.notify_all();
+        auto pp_recycle = [&](Prep *q) { std::lock_guard<std::mutex> lk(pq_m); pq_free.push_back(q); };
+        std::unique_ptr<Prep, decltype(pp_recycle)> pp_owner(ppp, pp_recycle);
+        Prep &PP = *ppp;
+        if (PP.status == 1) continue;
+        if (PP.status == 3) break;
+        if (PP.status == 2) { fflush(NULL); _exit(2); }
+        const u64 K = PP.K, shift = PP.shift, d = PP.d, MOD = PP.MOD, nthreads = PP.nthreads,
+                  total = PP.total, tot_words = PP.tot_words;
+        const int ntc = PP.ntc;
+        PinBuf &Rpre = PP.Rpre, &words = PP.words;
+        std::vector<u32> &offs = PP.offs, &rps = PP.rps, &mags = PP.mags, &k1s = PP.k1s,
+                         &k2s = PP.k2s, &k3s = PP.k3s, &k0s = PP.k0s;
+        const u64 *tcp = PP.tcp5;
+        ksetup_s = PP.ksetup_s; prep_s = PP.prep_s;
+        {
+            {
             if (first_unit) {
                 first_unit = false;
                 /* magic-modulo self-check against %, for every prime, on a
@@ -1002,7 +1186,7 @@ int main(int argc, char **argv) {
                         u32 q = (u32)(((u64)x * M) >> 32), rr = x - q * p;
                         if (rr >= p) rr -= p;
                         if (rr >= p) rr -= p;
-                        if (rr != x % p) { fprintf(stderr, "FATAL magic mod p=%u x=%u\n", p, x); return 2; }
+                        if (rr != x % p) { fprintf(stderr, "FATAL magic mod p=%u x=%u\n", p, x); fflush(NULL); _exit(2); }
                     }
                 }
                 fprintf(stderr, "tierC order: %llu %llu %llu %llu %llu ... (%d primes, "
@@ -1011,47 +1195,9 @@ int main(int argc, char **argv) {
                         (unsigned long long)tcp[3], (unsigned long long)tcp[4], ntc,
                         (unsigned long long)tot_words);
             }
-        }
-
-        for (u64 shift = shift0; shift < shift0 + shifts && !stop_requested; shift++) {
-            if (!done_units.empty() && done_units.count(unit_key(K, shift))) continue;
-            u64 boff = shift * 64;
-            double t_prep = lc_now_s();
-            if (shift == shift0) ksetup_s = t_prep - t_ks;
-            #pragma omp parallel for schedule(dynamic, 1)
-            for (int t = 0; t < ntc; t++) {
-                u64 r = tcp[t], acc = offs[t];
-                if (t >= ntc_real) { for (u64 y = 0; y < r + pad; y++) words[acc + y] = ~0ULL; continue; }
-                std::vector<char> ok(r, 0);
-                if (D0 % r == 0) { for (u64 x = 0; x < r; x++) ok[x] = (x != 0); }
-                else {
-                    for (u64 x = 0; x < r; x++) ok[x] = 1;
-                    u64 v = 0, dm = d % r;
-                    for (u64 kk = 0; kk < nterms; kk++) { ok[v] = 0; v = (v + r - dm) % r; }
-                }
-                u64 modr = MOD % r;
-                u64 b0 = lc_mulmod(boff % r, modr, r);
-                std::vector<u64> tmp;
-                u64 *dst = &words[acc];
-                if (kernel >= 20) { tmp.resize(r); dst = tmp.data(); }
-                for (u64 x = 0; x < r; x++) {
-                    u64 w = 0, y = (x + b0) % r;
-                    for (int b = 0; b < 64; b++) {
-                        if (ok[y]) w |= (u64)1 << b;
-                        y += modr; if (y >= r) y -= r;
-                    }
-                    dst[x] = w;
-                }
-                if (kernel >= 20) {          /* W'[y] = W[(y * s2) mod r], plus wrap pad */
-                    u64 s2r = sstep[in2] % r, x = 0;
-                    for (u64 y = 0; y < r + pad; y++) {
-                        words[acc + y] = tmp[x];
-                        x += s2r; if (x >= r) x -= r;
-                    }
-                }
             }
-
-            prep_s = lc_now_s() - t_prep;
+        }
+        {
             /* ---- buffer set `buf` is free once the unit before last is finished ---- */
             double t_fin = lc_now_s();
             finish_unit(buf);
@@ -1091,14 +1237,14 @@ int main(int argc, char **argv) {
             CK(cudaMemcpyToSymbol(c_k0, k0s.data(), ntc * 4));
 
             Params P;
-            P.MOD = MOD; P.s1 = sstep[in1]; P.s2 = sstep[in2];
-            P.c1 = (u32)C[in1].c; P.c2 = (u32)C[in2].c; P.ntc = (u32)ntc;
+            P.MOD = MOD; P.s1 = PP.s1; P.s2 = PP.s2;
+            P.c1 = PP.c1; P.c2 = PP.c2; P.ntc = (u32)ntc;
             P.cap = CAP; P.nthreads = (u32)nthreads;
             Unit &U = inflight[buf];
             U.K = K; U.shift = shift; U.d = d; U.MOD = MOD; U.total = total;
             U.nthreads = nthreads; U.ntc = ntc; U.valid = true;
             U.t_launch = lc_now_s();
-            u32 blocks = (u32)((nthreads + 255) / 256);
+            u32 blocks = (u32)((nthreads + TPB - 1) / TPB);
             if (kernel == 1) {
                 if (ntc > MAXTC_SH) { fprintf(stderr, "FATAL: ntc > MAXTC_SH\n"); return 2; }
                 sieve_flat<<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
@@ -1115,8 +1261,29 @@ int main(int argc, char **argv) {
                     default: fprintf(stderr, "bad --nch/--unr\n"); return 2;
                 }
                 #undef LF2
+            } else if (kernel == 30 || kernel == 31) {
+                if (ntc < ct0 || (ntc % 4) || (ct0 % 4)) { fprintf(stderr, "FATAL: kernel 30/31 needs ntc >= t0, multiples of 4\n"); return 2; }
+                if (tv != 0) { fprintf(stderr, "FATAL: --tv (dual-copy rows) not ported; it was slower\n"); return 2; }
+                if (TPB != 256) { fprintf(stderr, "FATAL: kernel 30/31 needs 256 threads/block\n"); return 2; }
+                if (kernel == 30) {
+                #define LC(T0_, TV_, CMP_) else if (nch == 7 && ct0 == T0_ && tv == TV_ && cmp == CMP_) \
+                    sieve_cmp<7, T0_, TV_, CMP_><<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
+                if (0) {} CMP_COMBOS(LC)
+                else { fprintf(stderr, "--kernel 30: (t0, tv, cmp) = (%d, %d, %d) not instantiated\n", ct0, tv, cmp); return 2; }
+                #undef LC
+                } else {
+                #define LW(N_, T0_) else if (nch == N_ && ct0 == T0_) \
+                    sieve_cmpw<N_, T0_><<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
+                if (0) {} CMPW_COMBOS(LW)
+                else { fprintf(stderr, "--kernel 31: (nch, t0) = (%d, %d) not instantiated\n", nch, ct0); return 2; }
+                #undef LW
+                }
+            } else if (kernel == 29) {
+                P.ntc = (u32)atoi(getenv("KFIX")); P.ntc -= P.ntc % 4; P.cap = getenv("KYMASK") ? (u32)strtoul(getenv("KYMASK"), NULL, 0) : 0xFFFFFFFFu;
+                if (getenv("KROW0")) { fprintf(stderr, "KROW0 unsupported\n"); return 2; }
+                sieve_diag<7, 4><<<blocks, TPB, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
             } else if (kernel >= 20) {
-                #define LS(N, UU) sieve_strided<N, UU><<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf])
+                #define LS(N, UU) sieve_strided<N, UU><<<blocks, TPB, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf])
                 switch (nch * 10 + unr) {
                     case 75: LS(7, 5); break; case 76: LS(7, 6); break; case 78: LS(7, 8); break;
                     case 64: LS(6, 4); break; case 54: LS(5, 4); break; case 94: LS(9, 4); break;
@@ -1160,12 +1327,17 @@ int main(int argc, char **argv) {
                 sieve<<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
             CK(cudaGetLastError());
             CK(cudaEventRecord(U.done, stream[buf]));
+            if (kbench) { CK(cudaEventSynchronize(U.done));
+                double ks = lc_now_s() - U.t_launch; kb_total += ks;
+                fprintf(stderr, "ksolo K=%llu sh=%llu res=%.4g ntc=%d %.4fs %.3e res/s\n", (unsigned long long)K,
+                        (unsigned long long)shift, (double)total * 1.0, ntc, ks, (double)total / ks); }
             launch_s = lc_now_s() - t_wait - wait_s;
             if (verify_mode) fprintf(stderr, "  timing K=%llu ksetup=%.3f prep=%.3f fin=%.3f up=%.3f wait=%.3f launch=%.3f\n",
                 (unsigned long long)K, ksetup_s, prep_s, fin_s, up_s, wait_s, launch_s);
             buf ^= 1;
         }
     }
+    prep_shutdown();
     finish_unit(buf);
     finish_unit(buf ^ 1);
     { std::lock_guard<std::mutex> lk(tq_m); tq_done = true; }
@@ -1173,6 +1345,7 @@ int main(int argc, char **argv) {
     worker.join();
 
     if (of) fclose(of);
+    if (kbench) fprintf(stderr, "KBENCH total kernel %.4fs\n", kb_total);
     printf("GPU BEST n=%d  units=%llu covered=%.4g raw a  survivors=%llu confirmed=%llu  %.1fs%s\n",
            global_best, (unsigned long long)units, covered,
            (unsigned long long)total_surv, (unsigned long long)total_conf,
