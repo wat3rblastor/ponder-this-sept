@@ -229,6 +229,31 @@ __device__ __forceinline__ void emit_word(u64 A, u64 s, u32 cap, u32 *cnt, u64 *
     }
 }
 
+/* Per-WORD load guard for phase 1 of sieve_cmpw: from row CMPW_WG on, a word that is
+ * already dead is not fetched even if its group is still alive (after 8 rows ~2% of the
+ * bits are left, after 12 rows about half the words are dead). The guards are refreshed
+ * every CMPW_WR rows. Dead words stay 0 either way, so results are unchanged; measured
+ * 1.18x on the kernel (WG = 8, WR = 2; WG = 12/16 and WR = 1/4 were 2-8% slower). */
+#ifndef CMPW_WG
+#define CMPW_WG 8
+#endif
+#ifndef CMPW_WR
+#define CMPW_WR 2
+#endif
+template <int NCH>
+__device__ __forceinline__ void row_and_w(const u64 *__restrict__ words, u32 t, const bool (&lv)[NCH],
+        u32 l0, u32 l1, u32 l2, u32 l3, u64 (&s)[NCH])
+{
+    u32 p = c_rp[t];
+    u32 x = l0 * c_k0[t] + l1 * c_k1[t] + l2 * c_k2[t] + l3 * c_k3[t];
+    u32 y = x - __umulhi(x, c_mag[t]) * p;
+    if (y >= p) y -= p;
+    if (y >= p) y -= p;
+    const u64 *w = words + (c_off[t] + y);
+    #pragma unroll
+    for (int c = 0; c < NCH; c++) { u64 q = 0; if (lv[c]) q = __ldg(w + c); s[c] &= q; }
+}
+
 template <int NCH, int T0>
 __global__ void __launch_bounds__(256, CMP_MINB)
 sieve_cmpw(const u64 *__restrict__ Rpre, const u64 *__restrict__ words,
@@ -258,6 +283,18 @@ sieve_cmpw(const u64 *__restrict__ Rpre, const u64 *__restrict__ words,
                 #pragma unroll
                 for (int c = 0; c < NCH; c++) o |= s[c];
                 const bool live = (tb < CMP_GUARD0) || o != 0ULL;
+                if (tb >= CMPW_WG) {
+                    bool lv[NCH];
+                    #pragma unroll
+                    for (int u = 0; u < CMP_U; u++) {
+                        if (u % CMPW_WR == 0) {
+                            #pragma unroll
+                            for (int c = 0; c < NCH; c++) lv[c] = s[c] != 0ULL;
+                        }
+                        row_and_w<NCH>(words, tb + u, lv, l0, l1, l2, l3, s);
+                    }
+                    continue;
+                }
                 #pragma unroll
                 for (int u = 0; u < CMP_U; u++)
                     row_and<NCH>(words, tb + u, false, live, l0, l1, l2, l3, s);
