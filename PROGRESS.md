@@ -408,3 +408,95 @@ Large units (131/137 pinned, e.g. K=6319) run at 1.29e10 residues/s solo against
 standard units: their early rows are weaker, so chains run longer.
 Agent's estimate for other cards, from SM count × clock: RTX 5090 ≈ 3.5–4× the GB10,
 RTX 4090 ≈ 2.5–3×. Unmeasured; `tools/build_here.sh` prints the real figure.
+
+---
+
+## 2026-10-03 04:20–06:50 UTC — 8x RTX PRO 6000 (Vast.ai): 2x throughput, structure hunt, handoff to Azure
+
+Machine: 8x NVIDIA RTX PRO 6000 Blackwell (sm_120, 188 SMs), 208 logical cores, 1 TB RAM, CUDA 12.8.
+Record unchanged at **n = 55**; a second, primitive 55 was found
+(`a = 296246969176050787`, `d = 11950172123811900`, K = 31270) and is listed in ANSWER.md §5.
+Coverage on this box: ~4.4e15 residues (`experiments/remote/*.jsonl`, tags r1..r7), no run >= 56.
+
+### Throughput: 3.67e11 -> 7.45e11 residues/s (all committed)
+
+| change | aggregate res/s | note |
+|---|---|---|
+| launch, 1 engine/GPU, strided kernel 20 | 3.67e11 | GPUs idle during serial per-K host setup |
+| 3 engines/GPU (time-sliced) | ~4.2e11 | device saturated |
+| kernel 31 (`--kernel 31 --t0 24`, warp compaction of words) | 5.11e11 | 42/42 old units identical |
+| host prep pool, sparse table build, pinned buffers (`--prep 8`), 2 engines/GPU | 5.96e11 | 60/60 identical |
+| `--report 55` (stage 3 stops when 55 is impossible) | 6.11e11 | runs < 55 no longer logged |
+| CUDA MPS (`MPS=1` in multi_gpu.sh) | ~6.2-6.6e11 | +8.5% per GPU by logs |
+| per-word load guards in kernel 31 | 7.45e11 | 60/60 identical, +14-20% |
+
+Lessons: (1) do not cap OpenMP threads: stage 3 runs in a std::thread that ignores `--threads`
+and needs ~25 cores per GPU; `OMP_NUM_THREADS=8` was 3.8x slower. (2) the `gpu=` log field is
+the inter-launch interval, not kernel time. (3) host pipeline now loses <2%; the cards are
+thermally capped (85 C, ~2200 of 2430 MHz, ~460 W): hardware. (4) compressed/shrunk tail tables
+do nothing: all GPU time is in the first 24 rows. (5) never `pkill -f <pattern>` from a shell
+whose own command line contains the pattern. Parked, unvalidated: queued-launch + blocking-sync
+host patch (`experiments/2026-10-03-structure/botl/queued_launch.patch`, expected 0-3%);
+Montgomery stage-3 arithmetic (2.2x less CPU per exact test, not needed while GPU-bound).
+
+### Planner (tools/plan_units.py, corrected)
+
+Rescaled copies: units with a good prime p | K re-find (p a, p d) images of earlier progressions;
+every "new" n=55 on this box except K=31270 is the record times 13/19/31/37/43. The planner now
+down-weights good primes in K (0.68/0.80/0.84/0.89 for 7/13/19/31), accounts for the strided
+window offset and averages term size per term: ~1.15x. Exact removal of copies is worth only
+1.3% of compute; pinning them out is a net loss. Calibration: per-term pass rate after the 1e4
+sieve rho(T) = 0.72 (ln T / 39.14)^-0.485 (Monte Carlo; validated by exact counts up to 43-digit
+terms); observed/expected long runs 0.82 +- 0.09 (2 sigma, hits are clustered). Rate: ~0.32-0.40
+expected 58s per hour at 6e11 res/s. MODCAP 2e16 remains optimal; the 64-bit cap costs nothing.
+
+### Hints from the 57-term record holder, and what was measured
+
+Relayed by the user: his a, d are "orders of magnitude" larger; "you can do it by hand if you
+think about it the right way"; "exploit the prime structure"; he used two of {large d, square
+option, automatic terms}; "every 57 contains three 55s". Results (sources and logs in
+`experiments/2026-10-03-structure/`):
+
+- **Large d alone: no gain (measured).** d = 3 * prod(bad primes <= y), y = 53..200: per-term
+  pass rate stays 0.44-0.50 unsieved and observed run counts match the model within 2% up to
+  43-digit terms. Each extra prime costs ~7-8x per word beyond our pin set.
+- **Automatic terms: real, but too thin.** General rule: if t_{k0} is Loeschian and
+  3*c*d*t_{k0} is a perfect square (c >= 1 integer), then t_{k0 +- c j^2} is Loeschian for all j.
+  Shapes: a = x^2, d = 3 m^2 (positions 0,1,4,...,49 free: 8 of 58; a bad prime can hit index k
+  only if k is a non-residue); a second square in the progression frees 8 more (conic,
+  m = 2AB, x = |6B^2 - A^2|); a = 3x^2 + m^2, d = 24 m^2 gives 13 free (generalized pentagonal
+  k), 23 with one extra condition, 32/40 with two/three (elliptic curve / finitely many).
+  Measured: 20-49x more runs of 10-20 terms than a generic AP of the same size, free positions
+  never fail. But the families are 1-dimensional (~T/1e13 members below T vs T^2/4e13): after an
+  equal-depth sieve the single-square family is 0.1-0.8x of baseline per walked value and has
+  ~1e7x too few candidates; a 58 needs terms near 1e40. The elliptic-curve (3+ squares) version
+  was being tested by an agent at handoff (`exp_ec/`): untested question is whether small points
+  exist once 5, 11, 17, 23, 29 must divide m, or whether those primes can be confined to
+  automatic positions.
+- **Square option: modest gain, the one actionable lead.** Per candidate at equal pool size for
+  n = 58: square classes for 59 (a ≡ -j d mod 59^2, j = 0..57) 1.5x; 53 left out of d with
+  53^2 on its single hit (j = 5..52) 1.10x; 47 out 1.01x; 41 out 0.92x; 29 out (n = 57 only)
+  0.30x. More important: 58-window yield falls ~6x per decade of term size (X^-0.79), and these
+  families are fresh pools of small-term candidates (union ~12.5x the baseline density at
+  n = 58, estimated ~5x fewer candidates to a first hit). An agent was adding them to the engine
+  as per-unit "modes" with a brute-force oracle at handoff (`/workspace/sqopt` on the Vast box;
+  not merged, not in this repo unless a later commit says so). If it is not here: the engine's
+  stage-1 component (modulus q^2, start, step = -d mod q^2, count) already has the right shape;
+  the unit key must include the mode; tier C must not also avoid q.
+- **No search-free construction exists by any route tried**: a linear function of k cannot be
+  identically a norm; scaling cannot repair a term; CRT-forced factors cover at most 2/58 of
+  each term's digits (lattice check); polynomial identities reduce to an existing AP.
+  Exhaustive small cases (n = 8..28) show optimal APs look like random admissible ones.
+- Web: IBM has not published the September solution (2026-10-03); no public (a, d) for any 55/57.
+  Choudhry (Integers 25 #A14) gives parametric 9-term APs and states no general method is known.
+
+### Handoff
+
+Vast.ai box is being dropped; the search continues on Azure from this repo (GOAL.md START HERE).
+Units finished on the Vast box after the last coverage commit may be repeated on Azure.
+
+Addendum (small-case agent, `exp_small/`): by counting, the all-in-d family (41, 47, 53 | d)
+holds only (41/65)(47/83)(53/101) ~ 19% of the 58-term progressions at a given term size; the
+square-option sub-families for 41/47/53 hold the other ~81% (~5x). Per-term pass rate (unsieved
+beyond Q, Monte Carlo): 0.571 at 1e12, 0.468 at 1e18, 0.414 at 1e24 for Q = 53. Smaller terms
+matter far more than anything else, which is why the square-option pools are the next step.

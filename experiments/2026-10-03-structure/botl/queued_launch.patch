@@ -1,0 +1,177 @@
+--- apsearch_cuda.orig.cu	2026-10-03 05:50:30.888148232 +0000
++++ apsearch_cuda.cu	2026-10-03 05:51:49.661920218 +0000
+@@ -615,6 +615,7 @@
+     bool valid;
+     double t_launch;
+     cudaEvent_t done;
++    cudaEvent_t start;        /* recorded on the kernel's stream just before it (queued mode) */
+ };
+ 
+ struct Hit { u64 n, a, d, K; };
+@@ -701,6 +702,11 @@
+     }
+ 
+     /* ---- CUDA setup ---- */
++    /* The launch thread sleeps in cudaEventSynchronize instead of spinning: a spinner
++     * that has used up its time slice is preempted for ~20 ms on a loaded machine and
++     * sees the kernel's completion late; a sleeper is woken at once. APS_SPIN=1 restores
++     * the default. Must precede the first call that creates the context. */
++    if (!getenv("APS_SPIN")) CK(cudaSetDeviceFlags(cudaDeviceScheduleBlockingSync));
+     int dev = 0; cudaDeviceProp prop; CK(cudaGetDeviceProperties(&prop, dev));
+     fprintf(stderr, "GPU: %s (SMs=%d, cc %d.%d) omp_threads=%d\n", prop.name,
+             prop.multiProcessorCount, prop.major, prop.minor, omp_get_max_threads());
+@@ -724,7 +730,21 @@
+     }
+     std::vector<u64> h_hits((size_t)CAP * 2);
+     Unit inflight[2]; inflight[0].valid = inflight[1].valid = false;
+-    for (int b = 0; b < 2; b++) CK(cudaEventCreate(&inflight[b].done));
++    for (int b = 0; b < 2; b++) { CK(cudaEventCreate(&inflight[b].done)); CK(cudaEventCreate(&inflight[b].start)); }
++    /* Queued launches (default; KQUEUE=0 restores the old wait-then-launch order).
++     * All kernels and their __constant__ table uploads go on ONE stream, kstream, so
++     * unit i+1 is enqueued while unit i is still running and the device starts it with
++     * no host round trip; stream order guarantees the constants are replaced only after
++     * the previous kernel has finished. Data uploads and result downloads stay on the
++     * per-buffer streams and overlap the running kernel as before. The constants are
++     * staged in page-locked memory, one block per buffer set: an async copy from
++     * pageable memory would first synchronise the stream (i.e. wait for the running
++     * kernel), and the block must stay valid until the copy executes -- it is reused
++     * only after finish_unit() has seen that unit's kernel complete. */
++    const bool kqueue = !(getenv("KQUEUE") && atoi(getenv("KQUEUE")) == 0);
++    cudaStream_t kstream; CK(cudaStreamCreate(&kstream));
++    u32 *h_const[2] = {NULL, NULL};
++    for (int b = 0; b < 2; b++) CK(cudaHostAlloc((void **)&h_const[b], (size_t)7 * MAXTC * 4, cudaHostAllocDefault));
+ 
+     FILE *of = out ? fopen(out, "a") : NULL;
+     if (out && !of) { perror("open --out"); return 2; }
+@@ -874,6 +894,9 @@
+         if (!U.valid) return;
+         CK(cudaEventSynchronize(U.done));
+         double gpu_s = lc_now_s() - U.t_launch;
++        if (kqueue) {         /* device time of the kernel alone, not the time it spent queued */
++            float ms = 0; CK(cudaEventElapsedTime(&ms, U.start, U.done)); gpu_s = (double)ms * 1e-3;
++        }
+         u32 nsurv = 0;
+         CK(cudaMemcpyAsync(&nsurv, d_cnt[b], 4, cudaMemcpyDeviceToHost, stream[b]));
+         CK(cudaStreamSynchronize(stream[b]));
+@@ -1226,6 +1249,32 @@
+             CK(cudaStreamSynchronize(stream[buf]));
+             up_s = lc_now_s() - t_up;
+             double t_wait = lc_now_s();
++            const cudaStream_t kst = kqueue ? kstream : stream[buf];
++            if (kqueue) {
++                /* wait= becomes a flag in this mode: 0.001 if the previous kernel was
++                 * still running when this one was enqueued (host ahead of the device),
++                 * 0 if the device had already gone idle */
++                wait_s = 0;
++                if (inflight[buf ^ 1].valid) {
++                    cudaError_t q = cudaEventQuery(inflight[buf ^ 1].done);
++                    if (q == cudaErrorNotReady) { wait_s = 0.001; (void)cudaGetLastError(); /* not an error: keep it out of the post-launch check */ }
++                    else CK(q);
++                }
++                if (ntc > MAXTC) { fprintf(stderr, "FATAL: ntc > MAXTC\n"); fflush(NULL); _exit(2); }
++                u32 *hc = h_const[buf]; const size_t nb = (size_t)ntc * 4;
++                memcpy(hc + 0 * MAXTC, offs.data(), nb); memcpy(hc + 1 * MAXTC, rps.data(), nb);
++                memcpy(hc + 2 * MAXTC, mags.data(), nb); memcpy(hc + 3 * MAXTC, k1s.data(), nb);
++                memcpy(hc + 4 * MAXTC, k2s.data(), nb);  memcpy(hc + 5 * MAXTC, k3s.data(), nb);
++                memcpy(hc + 6 * MAXTC, k0s.data(), nb);
++                CK(cudaMemcpyToSymbolAsync(c_off, hc + 0 * MAXTC, nb, 0, cudaMemcpyHostToDevice, kst));
++                CK(cudaMemcpyToSymbolAsync(c_rp,  hc + 1 * MAXTC, nb, 0, cudaMemcpyHostToDevice, kst));
++                CK(cudaMemcpyToSymbolAsync(c_mag, hc + 2 * MAXTC, nb, 0, cudaMemcpyHostToDevice, kst));
++                CK(cudaMemcpyToSymbolAsync(c_k1,  hc + 3 * MAXTC, nb, 0, cudaMemcpyHostToDevice, kst));
++                CK(cudaMemcpyToSymbolAsync(c_k2,  hc + 4 * MAXTC, nb, 0, cudaMemcpyHostToDevice, kst));
++                CK(cudaMemcpyToSymbolAsync(c_k3,  hc + 5 * MAXTC, nb, 0, cudaMemcpyHostToDevice, kst));
++                CK(cudaMemcpyToSymbolAsync(c_k0,  hc + 6 * MAXTC, nb, 0, cudaMemcpyHostToDevice, kst));
++                CK(cudaEventRecord(inflight[buf].start, kst));
++            } else {
+             if (inflight[buf ^ 1].valid) CK(cudaEventSynchronize(inflight[buf ^ 1].done));
+             wait_s = lc_now_s() - t_wait;
+             CK(cudaMemcpyToSymbol(c_off, offs.data(), ntc * 4));
+@@ -1235,6 +1284,7 @@
+             CK(cudaMemcpyToSymbol(c_k2, k2s.data(), ntc * 4));
+             CK(cudaMemcpyToSymbol(c_k3, k3s.data(), ntc * 4));
+             CK(cudaMemcpyToSymbol(c_k0, k0s.data(), ntc * 4));
++            }
+ 
+             Params P;
+             P.MOD = MOD; P.s1 = PP.s1; P.s2 = PP.s2;
+@@ -1247,9 +1297,9 @@
+             u32 blocks = (u32)((nthreads + TPB - 1) / TPB);
+             if (kernel == 1) {
+                 if (ntc > MAXTC_SH) { fprintf(stderr, "FATAL: ntc > MAXTC_SH\n"); return 2; }
+-                sieve_flat<<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
++                sieve_flat<<<blocks, 256, 0, kst>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
+             } else if (kernel == 21) {
+-                #define LF2(N, UU) sieve_fs<N, UU><<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], d_C[buf], P, d_cnt[buf], d_H[buf])
++                #define LF2(N, UU) sieve_fs<N, UU><<<blocks, 256, 0, kst>>>(d_R[buf], d_W[buf], d_C[buf], P, d_cnt[buf], d_H[buf])
+                 switch (nch * 10 + unr) {
+                     case 74: LF2(7, 4); break; case 54: LF2(5, 4); break; case 44: LF2(4, 4); break;
+                     case 64: LF2(6, 4); break; case 84: LF2(8, 4); break; case 72: LF2(7, 2); break;
+@@ -1267,13 +1317,13 @@
+                 if (TPB != 256) { fprintf(stderr, "FATAL: kernel 30/31 needs 256 threads/block\n"); return 2; }
+                 if (kernel == 30) {
+                 #define LC(T0_, TV_, CMP_) else if (nch == 7 && ct0 == T0_ && tv == TV_ && cmp == CMP_) \
+-                    sieve_cmp<7, T0_, TV_, CMP_><<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
++                    sieve_cmp<7, T0_, TV_, CMP_><<<blocks, 256, 0, kst>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
+                 if (0) {} CMP_COMBOS(LC)
+                 else { fprintf(stderr, "--kernel 30: (t0, tv, cmp) = (%d, %d, %d) not instantiated\n", ct0, tv, cmp); return 2; }
+                 #undef LC
+                 } else {
+                 #define LW(N_, T0_) else if (nch == N_ && ct0 == T0_) \
+-                    sieve_cmpw<N_, T0_><<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
++                    sieve_cmpw<N_, T0_><<<blocks, 256, 0, kst>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
+                 if (0) {} CMPW_COMBOS(LW)
+                 else { fprintf(stderr, "--kernel 31: (nch, t0) = (%d, %d) not instantiated\n", nch, ct0); return 2; }
+                 #undef LW
+@@ -1281,9 +1331,9 @@
+             } else if (kernel == 29) {
+                 P.ntc = (u32)atoi(getenv("KFIX")); P.ntc -= P.ntc % 4; P.cap = getenv("KYMASK") ? (u32)strtoul(getenv("KYMASK"), NULL, 0) : 0xFFFFFFFFu;
+                 if (getenv("KROW0")) { fprintf(stderr, "KROW0 unsupported\n"); return 2; }
+-                sieve_diag<7, 4><<<blocks, TPB, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
++                sieve_diag<7, 4><<<blocks, TPB, 0, kst>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
+             } else if (kernel >= 20) {
+-                #define LS(N, UU) sieve_strided<N, UU><<<blocks, TPB, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf])
++                #define LS(N, UU) sieve_strided<N, UU><<<blocks, TPB, 0, kst>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf])
+                 switch (nch * 10 + unr) {
+                     case 75: LS(7, 5); break; case 76: LS(7, 6); break; case 78: LS(7, 8); break;
+                     case 64: LS(6, 4); break; case 54: LS(5, 4); break; case 94: LS(9, 4); break;
+@@ -1301,7 +1351,7 @@
+             } else if (kernel >= 10) {
+                 if (ntc > MAXTC_SH || MOD >= (1ULL << 51) || b2 > 16000) {
+                     fprintf(stderr, "FATAL: flatN needs ntc<=%d, MOD<2^51, b2<=16000\n", MAXTC_SH); return 2; }
+-                #define LF(N) sieve_flatN<N><<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf])
++                #define LF(N) sieve_flatN<N><<<blocks, 256, 0, kst>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf])
+                 switch (kernel - 10) {
+                     case 1: LF(1); break; case 2: LF(2); break; case 3: LF(3); break;
+                     case 4: LF(4); break; case 5: LF(5); break; case 6: LF(6); break;
+@@ -1310,23 +1360,23 @@
+                 }
+                 #undef LF
+             } else if (kernel == 4) {
+-                sieve_ilpN<4><<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
++                sieve_ilpN<4><<<blocks, 256, 0, kst>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
+             } else if (kernel == 5) {
+-                sieve_ilpN<8><<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
++                sieve_ilpN<8><<<blocks, 256, 0, kst>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
+             } else if (kernel == 6) {
+-                sieve_ilpN<3><<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
++                sieve_ilpN<3><<<blocks, 256, 0, kst>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
+             } else if (kernel == 7) {
+-                sieve_ilpN<6><<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
++                sieve_ilpN<6><<<blocks, 256, 0, kst>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
+             } else if (kernel == 3) {
+-                sieve_ilp2<<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
++                sieve_ilp2<<<blocks, 256, 0, kst>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
+             } else if (kernel == 2) {
+                 u32 nsh = 0, nshw = 0;
+                 while (nsh < (u32)ntc && (nshw + rps[nsh]) * 8 <= shbytes) { nshw += rps[nsh]; nsh++; }
+-                sieve_sh<<<blocks, 256, nshw * 8, stream[buf]>>>(d_R[buf], d_W[buf], P, nsh, nshw, d_cnt[buf], d_H[buf]);
++                sieve_sh<<<blocks, 256, nshw * 8, kst>>>(d_R[buf], d_W[buf], P, nsh, nshw, d_cnt[buf], d_H[buf]);
+             } else
+-                sieve<<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
++                sieve<<<blocks, 256, 0, kst>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
+             CK(cudaGetLastError());
+-            CK(cudaEventRecord(U.done, stream[buf]));
++            CK(cudaEventRecord(U.done, kst));
+             if (kbench) { CK(cudaEventSynchronize(U.done));
+                 double ks = lc_now_s() - U.t_launch; kb_total += ks;
+                 fprintf(stderr, "ksolo K=%llu sh=%llu res=%.4g ntc=%d %.4fs %.3e res/s\n", (unsigned long long)K,

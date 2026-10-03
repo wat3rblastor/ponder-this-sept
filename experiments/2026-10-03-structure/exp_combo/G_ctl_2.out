@@ -1,0 +1,9 @@
+G cand=15400000 exact=802351 cpu=330.8
+  >=45: 0 (sq 0)  per_cand=0.000e+00 per_cpuh=0.000e+00
+  >=40: 0 (sq 0)  per_cand=0.000e+00 per_cpuh=0.000e+00
+  >=35: 0 (sq 0)  per_cand=0.000e+00 per_cpuh=0.000e+00
+  >=30: 0 (sq 0)  per_cand=0.000e+00 per_cpuh=0.000e+00
+  >=25: 0 (sq 0)  per_cand=0.000e+00 per_cpuh=0.000e+00
+  >=20: 6 (sq 1)  per_cand=3.896e-07 per_cpuh=6.529e+01
+  >=16: 193 (sq 31)  per_cand=1.253e-05 per_cpuh=2.100e+03
+  longest=21

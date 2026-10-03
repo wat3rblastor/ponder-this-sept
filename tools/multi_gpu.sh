@@ -13,7 +13,7 @@
 cd "$(dirname "$0")/.." || exit 1
 PLAN=$1; TAG=$2
 GPUS=${GPUS:-$(nvidia-smi --query-gpu=index --format=csv,noheader | tr '\n' ' ')}
-PPG=${PPG:-3}
+PPG=${PPG:-2}
 set -- $GPUS; NG=$#; N=$(( NG * PPG ))
 NCPU=$(nproc); TH=${TH:-$(( NCPU / N ))}; [ "$TH" -lt 2 ] && TH=2
 E=experiments/remote; mkdir -p $E
@@ -29,7 +29,7 @@ for g in $GPUS; do
   for p in $(seq 1 $PPG); do
     env CUDA_VISIBLE_DEVICES=$g ${OMPT:+OMP_NUM_THREADS=$OMPT} OMP_WAIT_POLICY=passive setsid nohup ./build/apsearch_cuda --nterms 58 --units "$PLAN" \
         --slice $j $N --modcap ${MODCAP:-20000000000000000} --b2 10000 --report 44 \
-        --threads $TH ${EXTRA:---kernel 31 --t0 24} --out "$E/${TAG}_s${j}.jsonl" --resume \
+        --threads $TH ${EXTRA:---kernel 31 --t0 24 --prep 8 --report 55} --out "$E/${TAG}_s${j}.jsonl" --resume \
         >> "$E/${TAG}_s${j}.log" 2>&1 < /dev/null &
     j=$(( j + 1 ))
   done

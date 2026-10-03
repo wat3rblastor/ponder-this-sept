@@ -9,35 +9,46 @@ what to do next. Keep it current; it outranks memory and chat history.
 
 ---
 
-## START HERE if you are a fresh session on a multi-GPU machine (added 2026-10-03 04:45 UTC)
+## START HERE if you are a fresh session on a new GPU machine (rewritten 2026-10-03 06:50 UTC)
 
-State: record is **n = 55** (`records.json`); target is a verified **n >= 58**, as fast as
-possible. The original single-GPU box is shut down; **this machine works alone** and this repo is
-the complete state. The engine, planner and launcher exist and are validated. **Do not redesign,
-re-derive or re-benchmark anything: build, launch, watch, verify.** Read `RENTED_GPU.md` and the
-last section of `PROGRESS.md`, then run exactly:
+State: best verified is **n = 55** (two distinct progressions, `records.json` / `ANSWER.md` §5);
+target is a verified **n >= 58** (a 57 is a waypoint: promote it, keep going). The search moved
+Mac -> GB10 -> 8x RTX PRO 6000 (Vast.ai) -> **Azure next**. This repo is the complete state:
+every finished work unit is a line in `experiments/*/*.jsonl` (committed), and the planner skips
+them. **Do not redesign or re-derive anything: build, plan, launch, watch, verify.** Read the last
+two sections of `PROGRESS.md`, then run exactly:
 
 ```
 make check                                   # python unit tests + CPU sieve build
 tools/build_here.sh                          # builds for this GPU; must print best=47 for K=205
 MODCAP=2e16 python3 tools/plan_units.py --budget-res 2e16 --kmax 600000 --smax 3000 \
-    --out experiments/remote_plan.txt        # ranked (K, shift) units; finished ones are excluded
-tools/multi_gpu.sh experiments/remote_plan.txt r1   # one engine per GPU, disjoint slices
-tools/autopromote.sh 60 &                    # verifies (2 checkers) + records + commits new bests
+    --out experiments/remote_plan.txt        # ranked (K, shift) units; finished ones are excluded (~3 min)
+tools/multi_gpu.sh experiments/remote_plan.txt az1   # 2 engines per GPU under CUDA MPS, disjoint slices
+setsid nohup tools/autopromote.sh 60 > /dev/null 2>&1 < /dev/null &
 ```
 
-- Progress: `grep -h '\*\*\* n=' experiments/remote/*.log | sort -t= -k2 -n | tail`. Each engine
-  prints only its own improving bests. Throughput reference: ~1.5e10 residues/s on the GB10;
-  an RTX 5090 / RTX PRO 6000 should be several times that per GPU (`build_here.sh` measures it).
+- `tools/multi_gpu.sh` defaults are the validated production settings: `PPG=2` engines per GPU,
+  CUDA MPS on (`MPS=0` to disable if the daemon cannot start), flags
+  `--kernel 31 --t0 24 --prep 8 --report 55`. Do **not** cap OpenMP threads (stage 3 needs ~25
+  cores per GPU; a cap of 8 was 3.8x slower). Use a NEW tag (`az1`) on a new machine.
+- The kernel was tuned on RTX PRO 6000 Blackwell (sm_120): 7.45e11 residues/s on 8 GPUs
+  (~9e10 per GPU). On a different GPU model `build_here.sh` prints the real figure; if kernel 31
+  misbehaves there, `EXTRA="--kernel 20 --prep 8 --report 55"` is the older strided kernel.
+- Progress: `grep -h '\*\*\* n=' experiments/remote/*.log | sort -t= -k2 -n | tail`. With
+  `--report 55` only runs >= 55 are logged. Most n=55 lines are the record times 13, 19, 31, 37,
+  43 (rescaled copies); `tools/list55.py` reduces to primitive form and lists distinct ones.
+- `tools/autopromote.sh` verifies (both checkers), records, regenerates `ANSWER.md`, commits and
+  **pushes** any new best, keeps the 55+ list current, and commits+pushes the coverage logs every
+  ~10 minutes. **Push after every commit** (user instruction, supersedes §7 "never push").
 - The engines stop themselves when any log shows a run >= 58. Then: `tools/promote.py <a> <d> <n>`
-  (must pass `src/verify.py` and `src/crosscheck.py`), confirm `records.json` and `ANSWER.md`
-  updated, append a PROGRESS.md entry, commit, push, report to the user. That is the finish line (§8).
+  (must pass `src/verify.py` and `src/crosscheck.py`), confirm `records.json` and `ANSWER.md`,
+  append a PROGRESS.md entry, commit, push, report to the user. That is the finish line (§8).
 - If an engine dies, rerun the same `tools/multi_gpu.sh` line: finished units are skipped.
-- Model (validated to ~5% on survivor counts): about 0.7 expected hits of length 58 per
-  12 GB10-GPU-hours of the best units, with diminishing returns. A 56 or 57 is likely on the way
-  and is promoted automatically. Research verdict (PROGRESS.md): no mathematical trick worth
-  more than a few percent remains; throughput is the lever.
-- `tools/deploy_remote.sh` drives a second machine over SSH and is not needed here.
+- Calibrated expectation (PROGRESS.md 2026-10-03 Vast.ai entry): ~0.4 expected 58s per hour at
+  7e11 residues/s, ~0.7 per hour for "57 or better"; yield per residue falls slowly down the plan.
+- Open leads and everything ruled out on 2026-10-03 (large d, automatic terms, square option,
+  elliptic-curve multi-square family, hints from the 57-term record holder) are in the last
+  PROGRESS.md section; sources are in `experiments/2026-10-03-structure/`.
 
 ---
 

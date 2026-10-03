@@ -1,0 +1,40 @@
+== F1 y=53: d=3*prod(bad<=y), a<3e+07  d=3.822e+11 (12 digits)  T~3.82e+12  candidates=2961200  clean windows(n0=10)=54020  [1s]
+   sieve survival: measured 1.8243e-02  model 1.6258e-02
+   per-term rho (clean to 1e4): measured 0.8718 +- 0.0009   model 0.8528   ratio 1.022
+   runs>=10: observed  11647  model  11656.21  (per 1e9 cand: obs 3.93e+06 model 3.94e+06; generic-AP model at this d,T: 3.12e+06)
+   runs>=15: observed    568  model    544.40  (per 1e9 cand: obs 1.92e+05 model 1.84e+05; generic-AP model at this d,T: 1.46e+05)
+   runs>=20: observed     17  model     23.27  (per 1e9 cand: obs 5.74e+03 model 7.86e+03; generic-AP model at this d,T: 6.23e+03)
+   runs>=25: observed      0  model      0.91  (per 1e9 cand: obs 0 model 307; generic-AP model at this d,T: 243)
+   runs>=30: observed      0  model      0.03  (per 1e9 cand: obs 0 model 10.9; generic-AP model at this d,T: 8.63)
+== F1 y=59: d=3*prod(bad<=y), a<3e+07  d=2.255e+13 (14 digits)  T~2.25e+14  candidates=2911057  clean windows(n0=10)=62767  [1s]
+   sieve survival: measured 2.1562e-02  model 1.9576e-02
+   per-term rho (clean to 1e4): measured 0.8342 +- 0.0009   model 0.7990   ratio 1.044
+   runs>=10: observed   7596  model   7633.54  (per 1e9 cand: obs 2.61e+06 model 2.62e+06; generic-AP model at this d,T: 1.94e+06)
+   runs>=15: observed    295  model    289.02  (per 1e9 cand: obs 1.01e+05 model 9.93e+04; generic-AP model at this d,T: 7.35e+04)
+   runs>=20: observed      9  model     10.18  (per 1e9 cand: obs 3.09e+03 model 3.5e+03; generic-AP model at this d,T: 2.59e+03)
+   runs>=25: observed      1  model      0.33  (per 1e9 cand: obs 344 model 115; generic-AP model at this d,T: 84.9)
+   runs>=30: observed      0  model      0.01  (per 1e9 cand: obs 0 model 3.5; generic-AP model at this d,T: 2.59)
+== F1 y=71: d=3*prod(bad<=y), a<3e+07  d=1.601e+15 (16 digits)  T~1.60e+16  candidates=2870129  clean windows(n0=10)=71201  [1s]
+   sieve survival: measured 2.4808e-02  model 2.2785e-02
+   per-term rho (clean to 1e4): measured 0.8026 +- 0.0009   model 0.7524   ratio 1.067
+   runs>=10: observed   5058  model   5087.68  (per 1e9 cand: obs 1.76e+06 model 1.77e+06; generic-AP model at this d,T: 1.23e+06)
+   runs>=15: observed    168  model    156.58  (per 1e9 cand: obs 5.85e+04 model 5.46e+04; generic-AP model at this d,T: 3.79e+04)
+   runs>=20: observed      7  model      4.53  (per 1e9 cand: obs 2.44e+03 model 1.58e+03; generic-AP model at this d,T: 1.1e+03)
+   runs>=25: observed      0  model      0.12  (per 1e9 cand: obs 0 model 43.1; generic-AP model at this d,T: 29.9)
+   runs>=30: observed      0  model      0.00  (per 1e9 cand: obs 0 model 1.11; generic-AP model at this d,T: 0.77)
+== F1 y=113: d=3*prod(bad<=y), a<3e+07  d=1.444e+25 (26 digits)  T~1.44e+26  candidates=2726418  clean windows(n0=10)=117631  [82s]
+   sieve survival: measured 4.3145e-02  model 3.9202e-02
+   per-term rho (clean to 1e4): measured 0.7117 +- 0.0008   model 0.5930   ratio 1.200
+   runs>=10: observed   1007  model    987.16  (per 1e9 cand: obs 3.69e+05 model 3.62e+05; generic-AP model at this d,T: 1.97e+05)
+   runs>=15: observed     10  model     12.84  (per 1e9 cand: obs 3.67e+03 model 4.71e+03; generic-AP model at this d,T: 2.56e+03)
+   runs>=20: observed      0  model      0.16  (per 1e9 cand: obs 0 model 59.2; generic-AP model at this d,T: 32.2)
+   runs>=25: observed      0  model      0.00  (per 1e9 cand: obs 0 model 0.721; generic-AP model at this d,T: 0.392)
+   runs>=30: observed      0  model      0.00  (per 1e9 cand: obs 0 model 0.00853; generic-AP model at this d,T: 0.00464)
+== F1 y=200: d=3*prod(bad<=y), a<3e+07  d=7.515e+42 (43 digits)  T~7.51e+43  candidates=2597336  clean windows(n0=10)=185544  [652s]
+   sieve survival: measured 7.1436e-02  model 6.5239e-02
+   per-term rho (clean to 1e4): measured 0.6480 +- 0.0007   model 0.4590   ratio 1.412
+   runs>=10: observed    159  model    159.50  (per 1e9 cand: obs 6.12e+04 model 6.14e+04; generic-AP model at this d,T: 2.58e+04)
+   runs>=15: observed      2  model      0.78  (per 1e9 cand: obs 770 model 299; generic-AP model at this d,T: 125)
+   runs>=20: observed      0  model      0.00  (per 1e9 cand: obs 0 model 1.43; generic-AP model at this d,T: 0.599)
+   runs>=25: observed      0  model      0.00  (per 1e9 cand: obs 0 model 0.00669; generic-AP model at this d,T: 0.00281)
+   runs>=30: observed      0  model      0.00  (per 1e9 cand: obs 0 model 3.09e-05; generic-AP model at this d,T: 1.3e-05)

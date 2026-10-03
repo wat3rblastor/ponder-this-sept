@@ -24,7 +24,7 @@ finished unit is a line in `experiments/remote/*.jsonl`, and rerunning the launc
 git clone git@github.com:wat3rblastor/ponder-this-sept.git && cd ponder-this-sept
 tools/build_here.sh                                          # must show best=47 for K=205
 MODCAP=2e16 python3 tools/plan_units.py --budget-res 2e16 --kmax 600000 --smax 3000 --out experiments/remote_plan.txt
-tools/multi_gpu.sh experiments/remote_plan.txt r1            # one engine per GPU
+tools/multi_gpu.sh experiments/remote_plan.txt <new-tag>     # 2 engines per GPU under MPS
 grep -h '\*\*\* n=' experiments/remote/*.log | sort -t= -k2 -n | tail -3
 python3 src/verify.py <a> <d> <n> --maximal                  # verify a hit
 ```

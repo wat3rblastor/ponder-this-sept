@@ -1,0 +1,27 @@
+FULL fam=base n=58 cands=298714 cpu_s=182 sieve_alive=0.7993 p_nonhit=0.54688 (n=17325412) p_hit=0.00000 (n=0) sum_ln_p=-35.0044 geo_p=0.54688 rho_rel=1.0000 Xa=7.255e+15
+FULL fam=base n=57 cands=331973 cpu_s=182 sieve_alive=0.7993 p_nonhit=0.54711 (n=18922461) p_hit=0.00000 (n=0) sum_ln_p=-34.3768 geo_p=0.54711 rho_rel=1.0000 Xa=7.255e+15
+FULL fam=no53 n=58 cands=277841 cpu_s=180 sieve_alive=0.7990 p_nonhit=0.54677 (n=15836937) p_hit=0.60588 (n=277841) sum_ln_p=-34.9083 geo_p=0.54779 rho_rel=0.9231 Xa=7.552e+15
+FULL fam=no53 n=57 cands=292800 cpu_s=180 sieve_alive=0.7991 p_nonhit=0.54708 (n=16396800) p_hit=0.60598 (n=292800) sum_ln_p=-34.2722 geo_p=0.54812 rho_rel=0.9423 Xa=7.474e+15
+FULL fam=no47 n=58 cands=295670 cpu_s=180 sieve_alive=0.7989 p_nonhit=0.54598 (n=16853190) p_hit=0.60307 (n=295670) sum_ln_p=-34.9955 geo_p=0.54697 rho_rel=0.7826 Xa=8.201e+15
+FULL fam=no41 n=58 cands=297103 cpu_s=180 sieve_alive=0.7989 p_nonhit=0.54523 (n=16934871) p_hit=0.59538 (n=297103) sum_ln_p=-35.0880 geo_p=0.54609 rho_rel=0.6000 Xa=9.367e+15
+FULL fam=no29 n=57 cands=263381 cpu_s=181 sieve_alive=0.7988 p_nonhit=0.53507 (n=14749336) p_hit=0.57072 (n=263381) sum_ln_p=-35.5807 geo_p=0.53568 rho_rel=0.0357 Xa=3.839e+16
+FULL fam=no41+no47+no53 n=58 cands=1 cpu_s=180 sieve_alive=0.8103 p_nonhit=0.43636 (n=55) p_hit=1.00000 (n=3) sum_ln_p=-inf geo_p=0.00000 rho_rel=0.4334 Xa=1.102e+16
+FULL fam=sq n=58 cands=325088 cpu_s=182 sieve_alive=0.7992 p_nonhit=0.55031 (n=18712472) p_hit=0.61237 (n=142632) sum_ln_p=-34.5923 geo_p=0.55078 rho_rel=2.2876 Xa=4.797e+15
+FULL fam=sq n=57 cands=336285 cpu_s=181 sieve_alive=0.7992 p_nonhit=0.54905 (n=19058304) p_hit=0.61478 (n=109941) sum_ln_p=-34.1361 geo_p=0.54943 rho_rel=1.6956 Xa=5.572e+15
+FULL fam=no53+sq n=58 cands=218086 cpu_s=180 sieve_alive=0.7991 p_nonhit=0.54976 (n=12426984) p_hit=0.61023 (n=222004) sum_ln_p=-34.5881 geo_p=0.55082 rho_rel=2.1116 Xa=4.993e+15
+FULL fam=base n=58 cands=188183 cpu_s=81 sieve_alive=0.7994 p_nonhit=0.56527 (n=10914614) p_hit=0.00000 (n=0) sum_ln_p=-33.0863 geo_p=0.56527 rho_rel=1.0000 Xa=7.255e+14
+FULL fam=base n=58 cands=107049 cpu_s=82 sieve_alive=0.7992 p_nonhit=0.53076 (n=6208842) p_hit=0.00000 (n=0) sum_ln_p=-36.7400 geo_p=0.53076 rho_rel=1.0000 Xa=7.255e+16
+RUNS fam=base n=58 LMIN=14 cands=14834054 cpu_s=300 cand_per_cpu_s=49441 tests=20897695 rho_rel=1.0000 Xa=7.255e+15
+  cum(run>=L): 14:63690 15:33620 16:17807 17:9432 18:4966 19:2621 20:1382 21:728 22:374 23:195 24:98 25:54 26:33 27:16 28:10 29:6 30:3 31:3
+RUNS fam=no53 n=58 LMIN=14 cands=3482325 cpu_s=300 cand_per_cpu_s=11607 tests=4952779 rho_rel=0.9231 Xa=7.552e+15
+  cum(run>=L): 14:15488 15:8243 16:4362 17:2341 18:1267 19:681 20:391 21:215 22:117 23:66 24:34 25:13 26:6 27:3 28:1
+RUNS fam=sq n=58 LMIN=14 cands=13665643 cpu_s=300 cand_per_cpu_s=45541 tests=19527893 rho_rel=2.2876 Xa=4.797e+15
+  cum(run>=L): 14:63706 15:34139 16:18236 17:9699 18:5163 19:2740 20:1433 21:744 22:377 23:200 24:104 25:54 26:29 27:16 28:6 29:5 30:4 31:3 32:2
+RUNS fam=no41+no47+no53 n=58 LMIN=14 cands=4 cpu_s=300 cand_per_cpu_s=0 tests=18 rho_rel=0.4334 Xa=1.102e+16
+  cum(run>=L):
+RUNS fam=base n=57 LMIN=14 cands=14398964 cpu_s=300 cand_per_cpu_s=47988 tests=19869431 rho_rel=1.0000 Xa=7.255e+15
+  cum(run>=L): 14:60271 15:32096 16:17245 17:9177 18:4910 19:2530 20:1331 21:724 22:379 23:194 24:111 25:65 26:32 27:17 28:7 29:3 30:2 31:2 32:1
+RUNS fam=no29 n=57 LMIN=14 cands=11176049 cpu_s=300 cand_per_cpu_s=37249 tests=14764102 rho_rel=0.0357 Xa=3.839e+16
+  cum(run>=L): 14:36355 15:18875 16:9874 17:5216 18:2684 19:1369 20:753 21:372 22:179 23:100 24:54 25:29 26:19 27:10 28:5 29:3 30:1 31:1 32:1
+RUNS fam=sq n=57 LMIN=14 cands=14746600 cpu_s=300 cand_per_cpu_s=49146 tests=20542438 rho_rel=1.6956 Xa=5.572e+15
+  cum(run>=L): 14:65854 15:35024 16:18646 17:9975 18:5320 19:2851 20:1479 21:773 22:414 23:204 24:112 25:73 26:39 27:21 28:11 29:8 30:4 31:3 32:2 33:2
