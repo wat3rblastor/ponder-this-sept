@@ -1,0 +1,21 @@
+residual applied: R_A(s=0.707) = 0.958, R_B(low s) = 0.960, band on R_B = 0.880..1.040
+exact truth = model / R, so E_true(T) = E_model(T)/R.
+
+(A) SUPPLY: expected # of 58-term APs (pairs) with all terms <= T, forced family d=3741870*m
+       T     E model  E corrected
+   1e+16  2.0563e-02   2.1465e-02
+   1e+17  3.4375e-01   3.5882e-01
+   1e+18  6.6408e+00   6.9320e+00
+   1e+19  1.4217e+02   1.4841e+02
+    even-odds existence (E_true >= ln2): T = 1.688e+17  (model alone: 1.746e+17)
+
+(B) COST: engine family, cost = 4.69e-32 T^2 core-hours
+       T     E model  E corrected   core-hours  core-h per 58
+   1e+17  1.5792e-02   1.6450e-02   4.6900e+02     2.8510e+04
+   1e+18  2.9547e-01   3.0778e-01   4.6900e+04     1.5238e+05
+   1e+19  6.2046e+00   6.4631e+00   4.6900e+06     7.2565e+05
+    even-odds find: T* = 1.869e+18, cost = 1.637e+05 core-hours
+    band from R_B = 0.880..1.040: T* = 1.747e+18..1.987e+18, cost = 1.432e+05..1.852e+05 core-hours
+    (groundtruth's figure: 1.5e5-1.77e5; plan's: ~2.0e5)
+
+    term-size band a production run should target: last term near T* = 1.87e+18

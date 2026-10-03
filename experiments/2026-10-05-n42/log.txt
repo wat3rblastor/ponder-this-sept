@@ -1,0 +1,12 @@
+# build 22.8s, threads 3
+# build 28.4s, threads 3
+# build 30.1s, threads 3
+# build 29.4s, threads 3
+# build 26.6s, threads 3
+# build 27.7s, threads 3
+# build 29.3s, threads 3
+# build 28.9s, threads 3
+# build 19.8s, threads 3
+# build 18.4s, threads 3
+# build 19.8s, threads 3
+# build 17.8s, threads 3
