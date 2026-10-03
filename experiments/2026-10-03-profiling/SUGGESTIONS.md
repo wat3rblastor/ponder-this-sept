@@ -166,3 +166,78 @@ else changes, and the resume and planner parsers ignore the new field.
      across classes. Changing the plan changes the slice assignment; resume is per (K, shift),
      so that is safe.
 2. Power limit 600 W (host side only), as in cycle 2.
+
+## Cycle 4 — 2026-10-03 18:09–18:25 UTC (engines with kern_s, OMPT=8, plan v2)
+
+Raw data: `cycle4/` (units_ts.txt, sys_ts.txt, fit.py, winfit.py, totfit.py, phases.py,
+plan_cost.py, plan_cost_{0,1}.txt, solo_units.txt).
+
+### Drift
+591 s span: 51.0 cores, **0 of 5907 periods throttled**. GPUs are at 99-100% util and
+544-550 W. SM clocks are flat at 2174-2322 MHz with no further drop since cycle 3, and
+temperatures are 76-90 C. Four new n=55 lines appeared (K=41949, 26019, 38763, 141423); none
+is >= 56.
+
+### 1. Refitting cost per class from production kern_s: the data cannot do it
+- **Per-unit kern_s under MPS cannot be attributed to a class.**
+  - Reference class (MOD 1.1337e15, n=2095): median kern/res is 0.0155 ns, but pooled
+    sum(kern)/sum(res) is 0.030-0.056 ns per GPU, 2-3.5x the median. Small kernels queue behind
+    the sibling engine's 85M-thread grids, and that wait is counted in their kern_s.
+  - The large classes come out at 0.2-0.6 of the reference (2.5171e15: n=81, pooled 0.17-0.32
+    per GPU). That is the reverse of KBENCH, and it is the same artefact: block dispatch is
+    first-come, so a large grid runs nearly alone while the small kernels wait.
+  - `cycle4/cost_fit.json` and the fit.py output are kept only as evidence of this.
+- **A conservation fit does not identify the costs.** The model is
+  "per GPU and window, sum of res x cost = window x speed", with 30 s or 60 s windows, or whole
+  spans of 899 s (cycle 3) and 490 s (cycle 4). It returned negative costs and negative speeds.
+  - Per-GPU mixes differ too little (large-class share 24-41%), and large units are too lumpy
+    (1 unit is up to ~60-100 s of GPU) for these spans.
+  - Direct look: GPU1 had the highest large-class share in both spans. In cycle 3 it was the
+    fastest GPU (9.65e10 vs mean 8.9e10); in cycle 4 it was below the mean (9.36e10 vs
+    9.55e10). That is no evidence either way at the ~3% level.
+- **Phase split** (small kernels only in flight vs a large kernel in flight, 0.05 s bins): it
+  gives 4.0e10 res/s for small-only phases against 1.2e11 for large phases. It depends on the
+  same kern intervals, so it inherits the queueing artefact. It is not a cost estimate either.
+
+**Plain verdict:** the only cost numbers are still the cycle-3 KBENCH samples: 1-2 per class,
+measured as a non-MPS context time-sliced against the production MPS server. Production data
+neither confirms nor refutes them. **The +3-8% gain is unverified.**
+
+### 2. Cost-ranked plan (generated; deploy only after the solo benchmark below)
+`experiments/remote_plan_cost.txt`: 1,886,972 units with the KBENCH cost model
+(ref 1.0, 2.5171e15 1/0.85, MOD >= 2.6e15 1/0.68, other 1/0.78), `--budget-res 2.6e16`.
+- The format matches experiments/remote_plan.txt ("K shift\n", ASCII, trailing newline):
+  0 format violations and 0 duplicates.
+- 0 finished units at generation time. When I checked a few minutes later, 3380 of them had
+  been finished by the running engines. Filter again immediately before launch (command below),
+  because the engine's resume only reads its own tag/slice file.
+
+Expected 58s at equal GPU time. GPU time is in reference-class residue-equivalents; at
+~7.6e11 res/s and mean cost ~1.25, 1 h is about 3.42e15. This holds **only under the KBENCH
+cost model**:
+
+| horizon | residue-ranked (current) | cost-ranked | gain | residues |
+|---|---|---|---|---|
+| 1 h | 0.395 | 0.427 | +8.1% | 2.73e15 -> 3.13e15 |
+| 3 h | 1.093 | 1.140 | +4.3% | 8.24e15 -> 9.04e15 |
+| 6 h | 1.993 | 2.054 | +3.1% | 1.64e16 -> 1.76e16 |
+
+If the true costs are flat (all ~1), the cost-ranked plan is **worse**. Measured from the same
+two planner runs at equal residues: 0.410 vs 0.431 at 3e15 (-4.9%), 1.249 vs 1.298 at 1e16
+(-3.8%), 2.286 vs 2.350 at 2e16 (-2.7%). That is roughly -5% / -4% / -3% at 1 h / 3 h / 6 h.
+The plan buys reference-class units at lower yield per residue for no saving. Upside and
+downside are about the same size, so the decision rests on the cost measurement.
+
+### Ranked suggestions
+1. **Settle the costs with a solo benchmark before switching plans** (about 1-2 min of one GPU).
+   - At the next restart leave one GPU out, e.g. `GPUS="0 1 2 3 4 5 6" PPG=2` (14 engines), or
+     pause its two engines. Then run, on that idle GPU:
+     `OMP_NUM_THREADS=8 KBENCH=1 CUDA_VISIBLE_DEVICES=7 ./build/apsearch_cuda --nterms 58 --units experiments/2026-10-03-profiling/cycle4/solo_units.txt --slice 0 1 --modcap 20000000000000000 --b2 10000 --kernel 31 --t0 24 --prep 8 --report 55 --out /tmp/solo.jsonl 2>&1 | grep ksolo`
+   - solo_units.txt holds 36 units from 9 classes, each interleaved with a reference-class unit.
+   - If the classes come out within ~10% of the reference, keep the current plan. If they match
+     KBENCH (0.65-0.85), deploy the cost plan: write the measured costs into a JSON
+     `{"ref":1,"c2517":..,"big":..,"other":..}` and regenerate with
+     `COSTFILE=that.json COSTAWARE=1 MODCAP=2e16 python3 experiments/2026-10-03-profiling/cycle4/plan_cost.py --budget-res 2.6e16 --kmax 600000 --smax 3000 --out experiments/remote_plan_cost.txt`.
+2. Before any launch on a regenerated plan, drop the units finished since generation:
+   `python3 -c "import json,glob;d={(j['K'],j['shift']) for f in glob.glob('experiments/*/*.jsonl') for l in open(f) if '\"covered\"' in l for j in [json.loads(l)]};L=[l for l in open('experiments/remote_plan_cost.txt') if tuple(map(int,l.split())) not in d];open('experiments/remote_plan_cost.txt','w').writelines(L);print(len(L))"`
+3. Power limit 600 W (host side), unchanged from cycle 2.

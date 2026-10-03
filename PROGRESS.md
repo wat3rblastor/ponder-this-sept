@@ -743,3 +743,22 @@ bound, 2^32 and 2^64 edges) and 3e6 random; K=205 selftest still finds the 47; K
 units give identical survivor/confirmed counts with the old and new binaries. After the restart
 all 8 GPUs sit at 100% / 550 W (power cap) and load average is ~115. This supersedes lesson (1)
 of the previous entry ("do not cap OpenMP threads").
+
+### 18:07–18:30 UTC — kernel-time logging, cost-ranked plan (tag v3)
+
+- Engine now logs true kernel time per unit (`kern=` in logs, `kern_s` in jsonl). Under MPS it
+  includes time queued behind the other engine on the same GPU, so production `kern_s` cannot be
+  used for per-class costs (small kernels read 2-3.5x high, large ones low; a totals fit went
+  negative). Use a solo run instead.
+- Solo kernel benchmark on GPU 7 with its two engines paused
+  (`experiments/2026-10-03-profiling/cycle4/solo_ksolo.txt`, 72 units): the reference class
+  (res 4.67e9, MOD 1.1337e15) runs at ~1.3e11 res/s (1.16-1.55e11); the res 6e9-2.6e10 classes at
+  1.0-1.2e11 (0.79-0.84 of reference); res 3.4e11 units at ~1.0e11 (0.76); res 4.9e11 units at
+  8.2e10 (0.62). This confirms the profiler's loaded-GPU figures (0.85 / 0.78 / 0.68).
+- `tools/plan_units.py` prices every residue equally. The cost-aware copy
+  (`experiments/2026-10-03-profiling/cycle4/plan_cost.py`, `COSTAWARE=1`) ranks by expected 58s
+  per GPU-second: planner estimate +8% / +4% / +3% expected 58s at 1 / 3 / 6 h of GPU time.
+  Running since ~18:30 UTC as tag `v3` on `experiments/remote_plan_cost_f.txt` (1,878,095 units,
+  finished ones removed). Tag `v2` covered ~2e15 residues of the residue-ranked plan first.
+- Profiler: CPU 51 of 245.76 quota cores, no throttling; GPUs 100% busy at the 550 W cap
+  (600 W is the card maximum; the cap is host-side and cannot be changed from the container).

@@ -1,0 +1,10 @@
+  at 1e+15 res: E58=0.141 (units 171291, marginal/res 1.27e-16)
+  at 3e+15 res: E58=0.410 (units 329606, marginal/res 1.15e-16)
+  GPUCOST 3.42e+15: E58=0.427 res=3.13e+15
+  at 6e+15 res: E58=0.780 (units 563204, marginal/res 1.03e-16)
+  GPUCOST 1.03e+16: E58=1.140 res=9.04e+15
+  at 1e+16 res: E58=1.249 (units 828615, marginal/res 9.46e-17)
+  at 1.5e+16 res: E58=1.788 (units 1155580, marginal/res 8.7e-17)
+  GPUCOST 2.05e+16: E58=2.054 res=1.76e+16
+  at 2e+16 res: E58=2.286 (units 1486792, marginal/res 8.13e-17)
+units=1886972 residues=2.6e+16 E58=2.845 maxK=599471 maxshift=119
