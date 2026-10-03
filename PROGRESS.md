@@ -378,3 +378,17 @@ needs the unreduced walk to fit 64 bits) the model gives E58 ≈ 0.69 per 12 GPU
 
 `tools/run_plan.sh experiments/2026-10-03-cuda/plan2.txt experiments/2026-10-03-cuda/p2.jsonl 58`
 plus `tools/autopromote.sh 60`. Stops itself when records.json reaches n >= 58.
+
+### Research verdicts and handoff (04:45 UTC)
+
+- Mathematical research agent: nothing worth >= 1.3x. Checked d structure and pin sets (MODCAP
+  2e16 is the optimum: E = 0.25/0.45/0.50/0.64/0.59 at 1.2e13/1.2e14/1.2e15/2e16/2e17), the 59^2
+  family (~1.03x, not worth a kernel mode), raising the 0.737 per-term probability (impossible:
+  it is the Poisson tail of bad primes > 1e4), literature (Choudhry gives 9-11 terms only; IBM
+  page lists lengths only), longer windows and symmetry (re-enumerate the same APs). A slightly
+  better planner score (per-term ln ln average instead of the last term) is worth ~1.035x.
+- Stage 3 moved to a worker thread behind a queue (hit sets identical on the validation units).
+- Multi-GPU tooling: `tools/build_here.sh`, `tools/multi_gpu.sh`, `tools/deploy_remote.sh`,
+  `RENTED_GPU.md`, engine `--slice i n`. GOAL.md opens with a START HERE block.
+- The single-GPU box is being shut down by the user; the search continues on a rented multi-GPU
+  machine from this repo alone. Units finished here after the final push may be repeated there.

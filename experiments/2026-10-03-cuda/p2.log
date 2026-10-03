@@ -401,3 +401,23 @@ K=5215 sh=0 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=750 bit
 K=10502 sh=0 MOD=3874656023104830 thr=150650500 res=8.688e+11 tierC=608 surv=291941 bits=291941 conf=279130 best=47 gpu=69.99s cpu=20.94s prep=0.02s up=0.014s wait=69.033s (1.24e+10 res/s)
 K=4012 sh=0 MOD=2517112306980510 thr=84912100 res=3.409e+11 tierC=608 surv=60499 bits=60499 conf=59585 best=47 gpu=24.46s cpu=4.22s prep=0.02s up=0.014s wait=69.033s (1.39e+10 res/s)
 GPU BEST n=47  units=27 covered=2.828e+18 raw a  survivors=601771 confirmed=582823  186.8s INTERRUPTED
+resume: 351 units already recorded in experiments/2026-10-03-cuda/p2.jsonl
+GPU: NVIDIA GB10 (SMs=48, cc 12.1) omp_threads=20
+shared memory per block: 101376 max, using 65536
+units: 76497 from experiments/2026-10-03-cuda/plan2.txt
+tierC order: 131 137 149 167 173 ... (608 primes, 2852664 words) magic-mod OK
+*** n=1 a=139250806963698991 d=89043495518010 (K=233 shift=1)
+*** n=7 a=132253105456725031 d=89043495518010 (K=233 shift=1)
+*** n=9 a=153107080748484721 d=89043495518010 (K=233 shift=1)
+*** n=10 a=123299358320670511 d=89043495518010 (K=233 shift=1)
+*** n=11 a=159962020340722291 d=89043495518010 (K=233 shift=1)
+*** n=18 a=163699072965855331 d=89043495518010 (K=233 shift=1)
+*** n=19 a=89260609066966861 d=89043495518010 (K=233 shift=1)
+*** n=23 a=148729839616901431 d=89043495518010 (K=233 shift=1)
+*** n=24 a=136468819262523217 d=89043495518010 (K=233 shift=1)
+K=233 sh=1 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=693 bits=693 conf=676 best=24 gpu=0.30s cpu=0.05s prep=0.01s up=0.001s wait=0.255s (1.55e+10 res/s)
+*** n=35 a=120601235002383277 d=942408840976020 (K=2466 shift=1)
+K=2466 sh=1 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=822 bits=822 conf=804 best=35 gpu=0.31s cpu=0.06s prep=0.01s up=0.001s wait=0.000s (1.5e+10 res/s)
+K=1313 sh=1 MOD=1470392337741090 thr=1974700 res=7.928e+09 tierC=608 surv=1395 bits=1395 conf=1385 best=35 gpu=0.54s cpu=0.11s prep=0.01s up=0.001s wait=0.000s (1.47e+10 res/s)
+K=5876 sh=0 MOD=1314244478865930 thr=1732900 res=6.199e+09 tierC=608 surv=1079 bits=1079 conf=1067 best=35 gpu=0.43s cpu=0.08s prep=0.01s up=0.001s wait=0.395s (1.43e+10 res/s)
+K=4498 sh=0 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=658 bits=658 conf=655 best=35 gpu=0.30s cpu=0.05s prep=0.01s up=0.001s wait=0.000s (1.54e+10 res/s)
