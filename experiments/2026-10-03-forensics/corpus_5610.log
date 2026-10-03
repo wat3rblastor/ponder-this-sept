@@ -1,0 +1,13 @@
+sieving Loeschian numbers up to N=2000000000 (238.4 MiB bitmap)...
+sieve selftest: OK
+sieve built in 6.9s
+*** new best n=27  a=511443607  d=5610
+m=1 d=5610 best_n=27 a=511443607 (3.8s)
+m=2 d=11220 best_n=26 a=70265797 (3.8s)
+m=3 d=16830 best_n=27 a=1534330821 (3.8s)
+m=4 d=22440 best_n=27 a=716717884 (3.8s)
+*** new best n=28  a=431372803  d=28050
+m=5 d=28050 best_n=28 a=431372803 (3.8s)
+m=6 d=33660 best_n=27 a=413995891 (3.8s)
+m=7 d=39270 best_n=27 a=1254256297 (3.8s)
+m=8 d=44880 best_n=26 a=281063188 (3.8s)

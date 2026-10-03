@@ -508,3 +508,41 @@ with >= 30 coverage, 104 curves have rank 0, 66 rank 1, 4 rank 2. The small bad 
 confined to automatic positions, so 5, 11, 17, 23, 29 must divide m; the smallest point with
 623645 | m found has a 34-digit m (72-digit terms). Exact test of that point: automatic positions
 never fail, but only 6 of 35 resolved non-automatic terms are Loeschian (~17%); longest run 6.
+
+---
+
+## 2026-10-03 — GOAL2 cycle 1 (orchestrator)
+
+Method switched to `GOAL2.md`: the premise is that `n >= 58` is reachable with this laptop, the
+orchestrator plans and judges, agents implement, and throughput is never a plan. Four independent
+hypotheses dispatched in parallel, each with a threshold fixed in advance.
+
+| # | hypothesis | the number that decides it | dir |
+|---|---|---|---|
+| H1 | The term-size floor `T >= 64*MOD` is an artefact of our enumerator, not the problem. If CRT-admissible `a` **small relative to the modulus** can be enumerated at ~O(1) each, the pin table says up to **200x** at the same term size. | cost per admissible `a < X` emitted, for a pin set with `1/delta >= 5e4`. WIN if < ~100 ops each; LOSS if > ~1e4 | `2026-10-03-enumfloor` |
+| H2 | The automatic-terms covering problem has never been posed. Free indices are `k0 + c*j^2`; a *union* over several `(c,k0)` could cover far more than the 8 and 13 seen so far. | smallest term size `T` admitting >= 30 of 58 automatic indices. WIN if `T <= 1e20`, LOSS if `T > 1e30`; the coverage-vs-min-T frontier is the artefact either way | `2026-10-03-covering` |
+| H3 | Our own long progressions are the only ground truth about what solutions look like, and have never been dissected against a matched control. | strongest deviation from matched control. WIN at >= 5x, LOSS if everything is within ~2x | `2026-10-03-forensics` |
+| H4 | Every ruled-out idea rests on a premise; one of them is wrong or escapable. | names the assumption and exhibits the construction/counterexample, or confirms them | `2026-10-03-assumptions` |
+
+Each brief carries the full mathematics restated, a falsifiable threshold, the laptop-only budget,
+and the rule that a clean negative goes in the first line.
+
+### Cycle 2 hypotheses, drafted while cycle 1 runs (queue must never be empty)
+
+- **H5 — interleaving / genuine MITM.** A 58-term AP with step `d` is *exactly* a pair of 29-term
+  APs with step `2d` whose starts differ by `d`. That is two coordinates, not one, so the old
+  "MITM does not apply" argument (which assumed `d` fixed and `a` the only unknown) does not cover
+  it. Counting check to do first: scanning `a` for a 29-run costs the same as for a 58-run
+  (expected ~2 term tests either way), so the naive version is neutral — the question is whether
+  the *sieve* costs differ, since a 29-window needs much weaker pinning (`q-29` good residues
+  instead of `q-58`). If the sieve is cheaper per 29-run than per 58-run by more than the join
+  costs, this wins.
+- **H6 — cross the two failed ideas.** The square option (bad `p < 58` left out of `d`, paying
+  `p^2` on its single hit) failed on cost; automatic terms failed on size. But a hit that lands on
+  an *automatic* index is free regardless of what divides it. Do the forced small primes'
+  hit-classes intersect the automatic set for any shape? Previously checked only for the
+  pentagonal shape at `p = 5`.
+- **H7 — the kernel formulation.** `t` Loeschian iff its squarefree kernel avoids all bad primes.
+  Pose the problem as: 58 numbers in AP whose squarefree kernels avoid a fixed prime set. Fixing
+  kernels for a subset of indices gives an overdetermined system on `(a,d)` — how many indices can
+  be fixed before it has no solutions, and what does the boundary case look like?
