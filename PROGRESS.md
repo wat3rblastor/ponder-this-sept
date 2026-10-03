@@ -390,7 +390,7 @@ plus `tools/autopromote.sh 60`. Stops itself when records.json reaches n >= 58.
 - Stage 3 moved to a worker thread behind a queue (hit sets identical on the validation units).
 - Multi-GPU tooling: `tools/build_here.sh`, `tools/multi_gpu.sh`, `tools/deploy_remote.sh`,
   `RENTED_GPU.md`, engine `--slice i n`. GOAL.md opens with a START HERE block.
-- The single-GPU box is being shut down by the user; the search continues on a rented multi-GPU
+- Local search stopped 2026-10-03 ~05:00 UTC at the user's request; all finished units are committed. The search continues on a rented multi-GPU
   machine from this repo alone. Units finished here after the final push may be repeated there.
 
 ### GPU research agent: warp-compaction kernel measured, not adopted (04:55 UTC)

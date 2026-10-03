@@ -436,3 +436,15 @@
 {"K":6419,"shift":0,"res":4.67017e+09,"surv":845,"conf":840,"best":52,"gpu_s":0.35,"cpu_s":0.06,"covered":6.58809e+18,"overflow":false}
 {"K":10207,"shift":0,"res":3.40922e+11,"surv":89018,"conf":87486,"best":52,"gpu_s":25.80,"cpu_s":6.38,"covered":6.74918e+18,"overflow":false}
 {"K":251,"shift":1,"res":4.67017e+09,"surv":591,"conf":589,"best":52,"gpu_s":0.30,"cpu_s":0.04,"covered":6.82174e+18,"overflow":false}
+{"K":1384,"shift":1,"res":4.67017e+09,"surv":672,"conf":666,"best":28,"gpu_s":0.29,"cpu_s":0.05,"covered":7.25543e+16,"overflow":false}
+{"K":5607,"shift":0,"res":1.09975e+10,"surv":1931,"conf":1914,"best":28,"gpu_s":0.72,"cpu_s":0.13,"covered":1.79348e+17,"overflow":false}
+{"K":166,"shift":1,"res":1.36369e+10,"surv":2639,"conf":2560,"best":31,"gpu_s":0.89,"cpu_s":0.19,"covered":2.93861e+17,"overflow":false}
+{"K":2740,"shift":1,"res":4.67017e+09,"surv":863,"conf":853,"best":32,"gpu_s":0.65,"cpu_s":0.07,"covered":3.66416e+17,"overflow":false}
+{"K":712,"shift":1,"res":1.09975e+10,"surv":2068,"conf":2000,"best":32,"gpu_s":0.75,"cpu_s":0.15,"covered":4.73209e+17,"overflow":false}
+{"K":4307,"shift":0,"res":3.40922e+11,"surv":60239,"conf":59398,"best":36,"gpu_s":21.92,"cpu_s":4.39,"covered":6.34304e+17,"overflow":false}
+{"K":1253,"shift":1,"res":4.67017e+09,"surv":680,"conf":673,"best":36,"gpu_s":0.33,"cpu_s":0.05,"covered":7.06858e+17,"overflow":false}
+{"K":4970,"shift":0,"res":2.62248e+10,"surv":4672,"conf":4546,"best":36,"gpu_s":1.96,"cpu_s":0.33,"covered":8.40726e+17,"overflow":false}
+{"K":1616,"shift":1,"res":7.92842e+09,"surv":1378,"conf":1365,"best":36,"gpu_s":1.05,"cpu_s":0.11,"covered":9.34831e+17,"overflow":false}
+{"K":5513,"shift":0,"res":4.67017e+09,"surv":739,"conf":736,"best":36,"gpu_s":0.50,"cpu_s":0.05,"covered":1.00739e+18,"overflow":false}
+{"K":11918,"shift":0,"res":6.26345e+11,"surv":200226,"conf":191430,"best":38,"gpu_s":48.32,"cpu_s":14.61,"covered":1.2259e+18,"overflow":false}
+{"K":3144,"shift":1,"res":4.67017e+09,"surv":860,"conf":834,"best":38,"gpu_s":0.35,"cpu_s":0.06,"covered":1.29846e+18,"overflow":false}

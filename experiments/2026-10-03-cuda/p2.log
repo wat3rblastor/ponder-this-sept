@@ -494,3 +494,36 @@ K=10207 sh=0 MOD=2517112306980510 thr=84912100 res=3.409e+11 tierC=608 surv=8901
 K=251 sh=1 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=591 bits=591 conf=589 best=52 gpu=0.30s cpu=0.04s prep=0.02s up=0.001s wait=25.769s (1.53e+10 res/s)
 GPU BEST n=52  units=73 covered=6.822e+18 raw a  survivors=390280 confirmed=384455  147.6s INTERRUPTED
 resume: 424 units already recorded in experiments/2026-10-03-cuda/p2.jsonl
+GPU: NVIDIA GB10 (SMs=48, cc 12.1) omp_threads=20
+shared memory per block: 101376 max, using 65536
+units: 76497 from experiments/2026-10-03-cuda/plan2.txt
+tierC order: 131 137 149 167 179 ... (608 primes, 2852732 words) magic-mod OK
+*** n=4 a=124743867412889731 d=528910720158480 (K=1384 shift=1)
+*** n=8 a=116396461706029831 d=528910720158480 (K=1384 shift=1)
+*** n=11 a=137812394038315471 d=528910720158480 (K=1384 shift=1)
+*** n=14 a=88027912479146071 d=528910720158480 (K=1384 shift=1)
+*** n=15 a=106235246531869321 d=528910720158480 (K=1384 shift=1)
+*** n=17 a=107530491583958281 d=528910720158480 (K=1384 shift=1)
+*** n=19 a=121907032123807321 d=528910720158480 (K=1384 shift=1)
+*** n=21 a=126623069026715197 d=528910720158480 (K=1384 shift=1)
+*** n=22 a=138500735084863897 d=528910720158480 (K=1384 shift=1)
+*** n=23 a=103184834536313047 d=528910720158480 (K=1384 shift=1)
+*** n=28 a=163342709903643823 d=528910720158480 (K=1384 shift=1)
+K=1384 sh=1 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=672 bits=672 conf=666 best=28 gpu=0.29s cpu=0.05s prep=0.01s up=0.001s wait=0.238s (1.61e+10 res/s)
+K=5607 sh=0 MOD=1668647484402810 thr=2739100 res=1.1e+10 tierC=608 surv=1931 bits=1931 conf=1914 best=28 gpu=0.72s cpu=0.13s prep=0.01s up=0.001s wait=0.000s (1.53e+10 res/s)
+*** n=31 a=260901848552061397 d=63438713545020 (K=166 shift=1)
+K=166 sh=1 MOD=1789272603757230 thr=3396484 res=1.364e+10 tierC=608 surv=2639 bits=2639 conf=2560 best=31 gpu=0.89s cpu=0.19s prep=0.01s up=0.001s wait=0.861s (1.52e+10 res/s)
+*** n=32 a=131369802583317439 d=1047120934417800 (K=2740 shift=1)
+K=2740 sh=1 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=863 bits=863 conf=853 best=32 gpu=0.65s cpu=0.07s prep=0.01s up=0.001s wait=0.299s (7.21e+09 res/s)
+K=712 sh=1 MOD=1668647484402810 thr=2739100 res=1.1e+10 tierC=608 surv=2068 bits=2068 conf=2000 best=32 gpu=0.75s cpu=0.15s prep=0.01s up=0.012s wait=0.000s (1.46e+10 res/s)
+*** n=33 a=153547283248488541 d=1645967103845790 (K=4307 shift=0)
+*** n=36 a=204193592930141677 d=1645967103845790 (K=4307 shift=0)
+K=4307 sh=0 MOD=2517112306980510 thr=84912100 res=3.409e+11 tierC=608 surv=60239 bits=60239 conf=59398 best=36 gpu=21.92s cpu=4.39s prep=0.01s up=0.001s wait=21.879s (1.56e+10 res/s)
+K=1253 sh=1 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=680 bits=680 conf=673 best=36 gpu=0.33s cpu=0.05s prep=0.02s up=0.001s wait=0.276s (1.41e+10 res/s)
+K=4970 sh=0 MOD=2091684874814790 thr=6531700 res=2.622e+10 tierC=608 surv=4672 bits=4672 conf=4546 best=36 gpu=1.96s cpu=0.33s prep=0.02s up=0.001s wait=0.000s (1.34e+10 res/s)
+K=1616 sh=1 MOD=1470392337741090 thr=1974700 res=7.928e+09 tierC=608 surv=1378 bits=1378 conf=1365 best=36 gpu=1.05s cpu=0.11s prep=0.02s up=0.001s wait=0.573s (7.56e+09 res/s)
+K=5513 sh=0 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=739 bits=739 conf=736 best=36 gpu=0.50s cpu=0.05s prep=0.02s up=0.015s wait=0.000s (9.42e+09 res/s)
+*** n=38 a=197916520466967631 d=4554593903792460 (K=11918 shift=0)
+K=11918 sh=0 MOD=3414300852042870 thr=108608500 res=6.263e+11 tierC=608 surv=200226 bits=200226 conf=191430 best=38 gpu=48.32s cpu=14.61s prep=0.02s up=0.001s wait=47.219s (1.3e+10 res/s)
+K=3144 sh=1 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=860 bits=860 conf=834 best=38 gpu=0.35s cpu=0.06s prep=0.02s up=0.001s wait=47.219s (1.35e+10 res/s)
+GPU BEST n=38  units=12 covered=1.298e+18 raw a  survivors=276967 confirmed=266975  91.4s INTERRUPTED
