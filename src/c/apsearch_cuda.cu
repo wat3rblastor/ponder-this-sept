@@ -574,7 +574,7 @@ int main(int argc, char **argv) {
     u64 modcap = 2000000000000000ULL;
     int report = 44;
     const char *out = NULL, *units_file = NULL;
-    bool verify_mode = false, resume = false;
+    bool verify_mode = false, resume = false, hist_mode = false;
     int nomp = 0, kernel = 20;       /* strided groups; see the kernel comments for the measured ladder */
     u64 shbytes = 65536;
     int unr = 4;                     /* primes per exit test in the strided kernel */
@@ -601,6 +601,7 @@ int main(int argc, char **argv) {
         else if (!strcmp(k, "--shbytes")) shbytes = strtoull(NEXT(), NULL, 10);
         else if (!strcmp(k, "--verify")) verify_mode = true;
         else if (!strcmp(k, "--resume")) resume = true;
+        else if (!strcmp(k, "--hist")) hist_mode = true;
         else { fprintf(stderr, "unknown arg %s\n", k); return 2; }
         #undef NEXT
     }
@@ -644,7 +645,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "shared memory per block: %d max, using %llu\n", maxsh, (unsigned long long)shbytes);
     }
     cudaStream_t stream[2]; CK(cudaStreamCreate(&stream[0])); CK(cudaStreamCreate(&stream[1]));
-    const u32 CAP = 1u << 18;
+    const u32 CAP = 1u << 23;        /* survivor words per unit (128 MB per buffer set) */
     u64 *d_R[2] = {NULL, NULL}, *d_W[2] = {NULL, NULL}, *d_H[2];
     Row *d_C[2] = {NULL, NULL};
     std::vector<Row> h_rows(MAXTC);
@@ -708,7 +709,11 @@ int main(int argc, char **argv) {
                 nbits++;
                 u64 a0 = Rb + (boff + (u64)bb) * MOD;
                 u64 best_run = 0, best_start = 0, cur = 0, cur_start = 0;
+                const u64 want = hist_mode ? 1 : ((report > 1) ? (u64)report : 1);
                 for (u64 kk = 0; kk < nterms; kk++) {
+                    /* stop as soon as even a perfect tail cannot reach the
+                     * reporting threshold (full scan only with --hist) */
+                    if (cur + (nterms - kk) < want) break;
                     u64 t2 = a0 + kk * d;
                     if (t2 < a0) break;
                     if (lc_is_loeschian(t2)) {
@@ -762,10 +767,12 @@ int main(int argc, char **argv) {
                     (unsigned long long)U.K, (unsigned long long)U.shift,
                     (double)U.total, nsurv, (unsigned long long)nconf, global_best,
                     gpu_s, cpu_s, covered, overflow ? "true" : "false");
+            if (hist_mode) {
             fprintf(of, "{\"hist\":true,\"K\":%llu,\"shift\":%llu,\"runs\":[",
                     (unsigned long long)U.K, (unsigned long long)U.shift);
             for (int i = 0; i < 64; i++) fprintf(of, "%s%llu", i ? "," : "", (unsigned long long)hist[i]);
             fprintf(of, "]}\n");
+            }
             fflush(of);
         }
         if (verify_mode)
@@ -906,8 +913,11 @@ int main(int argc, char **argv) {
         const u64 pad = (kernel >= 20) ? (u64)(nch - 1) : 0;
         if (kernel >= 20) {
             u64 amax = MOD + (u64)C[in1].c * sstep[in1] + ((u64)C[in2].c + (u64)nch) * sstep[in2];
-            if (b2 > 16383 || MOD >= (1ULL << 51) || amax < MOD) {
-                fprintf(stderr, "FATAL: strided kernel needs b2 <= 16383 and MOD < 2^51\n"); return 2; }
+            (void)amax;
+            /* unreduced walk: A < MOD * (1 + c1 + c2 + nch) must fit in 64 bits */
+            if (b2 > 16383 || MOD >= (1ULL << 56) || C[in1].c + C[in2].c + (u64)nch >= 255) {
+                fprintf(stderr, "K=%llu: strided kernel needs b2 <= 16383, MOD < 2^56; skipping\n",
+                        (unsigned long long)K); continue; }
         }
         u64 tot_words = 0;
         for (int i = 0; i < ntc; i++) tot_words += tcp[i] + pad;

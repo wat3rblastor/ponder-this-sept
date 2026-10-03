@@ -85,7 +85,8 @@ def main():
         if sh is None: continue
         shapes[K] = sh
         v, _ = val(sh, K, 0)
-        if v is not None: heapq.heappush(heap, (-v, K, 0))
+        if v is None: continue
+        heapq.heappush(heap, (-v, K, 0))
     plan, spent, E, Elevel = [], 0.0, 0.0, 0.0
     while heap and spent < args.budget_res:
         nv, K, s = heapq.heappop(heap)

@@ -313,3 +313,68 @@ All search processes stopped at the user's request. State at pause:
   vs fixed-T decay model); after that, shift planes 1-2 repeat the same economics on fresh
   space. User directive on record: keep going until n >= 57 (GOAL.md §0), M2 on-chip GPU
   allowed, no rented hardware.
+
+---
+
+## 2026-10-03 03:00–04:40 UTC — NVIDIA GB10: CUDA engine, record n = 55
+
+Environment changed: rented Vast.ai box, NVIDIA GB10 (48 SMs, cc 12.1, CUDA 13.2), 20 cores.
+User directives this session: target is **n >= 58**, wanted **by 2026-10-03 16:10 UTC**.
+
+### Record: n = 47 -> **n = 55**
+
+`a = 11687581876345393`, `d = 202927451159070` (`K = 531 = 9·59`, shift 8), verified by
+`src/verify.py` (maximal both ends) and `src/crosscheck.py`, promoted by `tools/autopromote.sh`.
+
+### Engine (`src/c/apsearch_cuda.cu`, `make cuda`)
+
+Throughput ladder on one full unit (4.67e9 residues), every step validated against the CPU
+engine's hit sets or by set containment:
+
+| kernel | s/unit | note |
+|---|---|---|
+| Metal M2 (previous) | 11–12 | |
+| CUDA 1 chain/thread | 1.31 | straight port, magic-multiply modulo |
+| 4 chains/thread | 0.49 | kernel was latency-bound on dependent L1 gathers |
+| strided groups, 7 residues × 4 primes per exit test | 0.25 | below |
+
+**Strided groups** (the big one): walk the innermost loop *without* reducing mod MOD, so
+`A mod r` advances by a fixed stride; store each tier-C table pre-rotated by that stride so 7
+consecutive residues read 7 adjacent words (one fold + ~one cache line per prime per group).
+An unreduced `A = R + w·MOD` is the same class with its 64-candidate window moved up by `w`,
+so a unit `(K, shift)` now covers, per class, the multiples `[64·shift + w, 64·shift + 64 + w)`.
+
+Tried and rejected (kept behind `--kernel`): per-lane flat chains (1, N chains, and flat
+strided) — 2× slower, the constant cache beats per-lane row loads; tables in shared memory —
+slower (occupancy). Pipeline bug worth remembering: a plain `cudaMemcpy` uses the legacy
+default stream and silently waits for the other stream's kernel (cost 1/3 of the GPU).
+
+### Calibration (full-window histograms, 205 units, `c1.jsonl` hist lines)
+
+Runs ≥ n per unit fall by ~0.737/term for n = 25..47 after removing the position factor;
+`E58 ≈ W·ρ^58 ≈ 1e-5` per generic shift-0 unit (W ≈ 546 survivor windows). That is ~3× more
+optimistic than the previous session's pessimistic branch.
+
+### K is not uniform: value-ordered planning (`tools/plan_units.py`)
+
+Corrects "ordering K by singular series is worth ×1.00" (2026-10-02). For a bad prime
+`q > 58` with `q | K`: no term is ever divisible by `q`, so the tier-C filter passes
+`(q-1)/q` of candidates instead of `(q-58)/q` — ×1.79 for q = 131 at the same GPU cost — and
+if `q` was a pinned prime its slot goes to the next one (131, 137, …). Measured: K = 131 gives
+836 survivors/unit vs ~450; K = 71·83 gives 3× the survivors per residue. The planner scores
+each `(K, shift)` by yield per residue, `∏` of those factors times `(ln T)^-29`, and the engine
+consumes the list (`--units`). With the modulus cap lifted to 2e16 (the strided kernel only
+needs the unreduced walk to fit 64 bits) the model gives E58 ≈ 0.69 per 12 GPU-hours versus
+0.24 for plain shift planes on K ≤ 3365. The n = 55 came from a 59 | K unit minutes later.
+
+### Coverage
+
+- Reduced-kernel planes (multiples `[0,64)`): shift 0, K ≤ 1949 (`2026-10-03-gpu`, `c1.jsonl`).
+- Strided planes: `c2.jsonl` (shift 0, K 1950..~2700), `s*.jsonl` (queue, brief),
+  `p1.jsonl`, `p2.jsonl` (plan order; each unit is a line, `--resume` skips them and
+  `plan_units.py` excludes them when replanning).
+
+### Running
+
+`tools/run_plan.sh experiments/2026-10-03-cuda/plan2.txt experiments/2026-10-03-cuda/p2.jsonl 58`
+plus `tools/autopromote.sh 60`. Stops itself when records.json reaches n >= 58.
