@@ -696,3 +696,27 @@ is unresolvable with the data in hand, but at L = 34..38 the two differ by 3x–
 more statistics separates them outright — about 8 laptop-hours of the *identical* command on fresh
 K ranges (K >= 30001; 20001..27010 is covered). Dispatched as `experiments/2026-10-04-decay`.
 It is simultaneously a real search run.
+
+### Cycle 5 candidates (drafted while cycle 4 holds all 8 cores; analysis-only, no compute)
+
+Settled by hand, no agent needed:
+- **Interleaving MITM is dead.** A 58-run is exactly two 29-runs with step `2d` offset by `d`, but
+  finding all the 29-runs still requires scanning every `a` — the birthday speedup does not apply
+  because we need a *specific* offset, not a collision. Cost identical to the direct search.
+- **Recovering the 44% that avoid-only pinning misses is exactly neutral.** For q = 59, avoid-only
+  keeps 1 of 59 residues and finds 50.8% of solutions; the `q²` union keeps 117 of 3481 and finds
+  100%. Work per solution: `(1/59)/0.508 = 0.0334` vs `(1/29.75)/1.0 = 0.0336`. Identical.
+- **n = 58 is the last length at which 59 can be dodged entirely.** At n = 59 the window covers
+  every residue mod 59 exactly once, so one term is divisible by 59 and needs `59²`. Combined with
+  the 29-cliff at `2*29 = 58`, n = 58 sits between two constraints: it is the first length forcing
+  `29 | d` and the last allowing 59 to miss. Explains the shape of the difficulty curve; not
+  actionable.
+
+Still open, in priority order if cycle 4 lands on the pessimistic branch:
+1. Re-poll the IBM blog URL on 2026-10-06 and 2026-10-10, grepping raw HTML for
+   `Insert the solution text here`. The solution is pending, not hidden, and would supply the only
+   external example in existence.
+2. One proved point at n >= 38 (~8 core-hours) to test the corr-cliff extrapolation that sets
+   `M(58)`; it is the cheapest remaining constraint on where the target region actually is.
+3. Submit the proved M(n) table to OEIS — no such sequence exists. Not progress toward n >= 58,
+   but it is a real result this project produced and it should not be lost.
