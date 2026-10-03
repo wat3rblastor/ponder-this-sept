@@ -64,9 +64,28 @@ def main():
                     "d_factored": promote.fmt_factored(d), "verified": True,
                     "maximal_both_ends": "maximal in both directions" in o1})
         print(f"listed n={n} a={a} d={d}")
-    if out == recs.get("g3_runs_55plus"):
+    # rescaled copies exactly as the search found them (g*a, g*d), listed separately
+    oldc = {(e["a"], e["d"]): e for e in recs.get("g3_copies_55plus", [])}
+    listed = {(e["a"], e["d"]) for e in out}
+    copies = []
+    for (a, d), n in sorted(cands.items(), key=lambda kv: (-kv[1], kv[0][0] + (kv[1] - 1) * kv[0][1])):
+        g = gcd(a, d)
+        if g == 1 or (a // g, d // g) not in listed:
+            continue
+        e = oldc.get((a, d))
+        if e and e["n"] >= n:
+            copies.append(e); continue
+        rc1, o1 = run(["python3", "src/verify.py", str(a), str(d), str(n), "--quiet"])
+        rc2, o2 = run(["python3", "src/crosscheck.py", str(a), str(d), str(n)])
+        if rc1 or "OVERALL: PASS" not in o1 or rc2 or "CROSS-CHECK: PASS" not in o2:
+            print(f"SKIP copy (failed verification): a={a} d={d} n={n}"); continue
+        copies.append({"a": a, "d": d, "n": n, "last": a + (n - 1) * d, "multiplier": g,
+                       "primitive_a": a // g, "primitive_d": d // g, "verified": True})
+        print(f"listed copy n={n} a={a} d={d} (x{g})")
+    if out == recs.get("g3_runs_55plus") and copies == recs.get("g3_copies_55plus", []):
         return 3
     recs["g3_runs_55plus"] = out
+    recs["g3_copies_55plus"] = copies
     (ROOT / "records.json").write_text(json.dumps(recs, indent=2) + "\n")
     promote.write_answer(recs)
     print(f"{len(out)} distinct progressions of {NMIN}+ terms; ANSWER.md regenerated")

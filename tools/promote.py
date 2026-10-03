@@ -118,6 +118,9 @@ def write_answer(recs: dict) -> None:
     runs_md = "\n".join(
         f"| {r['n']} | `{r['a']}` | `{r['d']}` | `{r['last']}` | {r['d_factored']} |"
         for r in runs) or "| | (none listed yet) | | | |"
+    copies_md = "\n".join(
+        f"| {r['n']} | `{r['a']}` | `{r['d']}` | `{r['last']}` | {r['multiplier']} | `{r['primitive_a']}` |"
+        for r in recs.get("g3_copies_55plus", [])) or "| | (none) | | | | |"
     doc = f"""# Answers
 
 **Main challenge (35 terms, smallest last term): `a = {g1['a']}`, `d = {g1['d']}`,
@@ -250,6 +253,16 @@ Every row passes both `src/verify.py` and `src/crosscheck.py` at the stated leng
 {runs_md}
 
 Re-check any row: `python3 src/verify.py <a> <d> <n> --maximal`
+
+### Rescaled copies of the rows above, as the search found them
+
+Each of these is a row of the table above with `a` and `d` both multiplied by the stated
+Loeschian multiplier. They are valid progressions of the stated length (each verified by both
+checkers) but not new ones.
+
+| n | a | d | last term | multiplier | primitive a |
+|---|---|---|---|---|---|
+{copies_md}
 
 ## 5b. Status of the n ≥ 58 target
 
