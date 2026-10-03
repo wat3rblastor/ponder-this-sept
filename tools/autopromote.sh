@@ -47,7 +47,7 @@ the constructive cross-check in src/crosscheck.py." >> "$LOG" 2>&1
   fi
   # every ~10 polls, commit and push the coverage logs so another machine can resume
   tick=$(( ${tick:-0} + 1 ))
-  if [ $(( tick % 10 )) -eq 0 ]; then
+  if [ $(( tick % 3 )) -eq 0 ]; then
     git add experiments/remote/*.jsonl >> "$LOG" 2>&1
     if ! git diff --cached --quiet; then
       git commit -q -m "coverage: units searched so far (experiments/remote)" >> "$LOG" 2>&1

@@ -1,0 +1,296 @@
+--- src/c/apsearch_cuda.cu	2026-10-03 05:04:17.411350232 +0000
++++ /workspace/sqopt/src/c/apsearch_cuda.cu	2026-10-03 06:43:55.531132275 +0000
+@@ -611,6 +611,8 @@
+ 
+ struct Unit {                 /* one (K, shift) work unit in flight */
+     u64 K, shift, d, MOD, total, nthreads;
++    long long mode;           /* 0 = avoid-only; +q = square option on pinned q (F2);
++                               * -q = q removed from D0 and pinned mod q^2 (F1) */
+     int ntc;
+     bool valid;
+     double t_launch;
+@@ -619,10 +621,11 @@
+ 
+ struct Hit { u64 n, a, d, K; };
+ 
+-static std::string unit_key(u64 K, u64 shift) {
+-    char b[64]; snprintf(b, sizeof b, "%llu/%llu", (unsigned long long)K,
+-                         (unsigned long long)shift); return b;
++static std::string unit_key(u64 K, u64 shift, long long mode) {
++    char b[96]; snprintf(b, sizeof b, "%llu/%llu/%lld", (unsigned long long)K,
++                         (unsigned long long)shift, mode); return b;
+ }
++struct Job { u64 K, shift; long long mode; };
+ 
+ int main(int argc, char **argv) {
+     u64 kmin = 1, kmax = 0, nterms = 58, shifts = 1, b2 = 10000, D0 = D0_DEFAULT;
+@@ -639,6 +642,8 @@
+     int unr = 4;                     /* primes per exit test in the strided kernel */
+     int ct0 = 28, tv = 0, cmp = 1;   /* --kernel 30/31 */
+     int nch = 7;                     /* group size for the strided kernel (--kernel 20) */
++    long long mode_def = 0;          /* --mode: unit mode for --kmin/--kmax ranges and 2-column unit files */
++    bool mr_on = false; u64 mr_lo = 0, mr_hi = 0;   /* --mrange lo hi (test aid): stage 3 keeps only windows with lo <= a0/MOD < hi */
+ 
+     for (int i = 1; i < argc; i++) {
+         const char *k = argv[i];
+@@ -665,6 +670,8 @@
+         else if (!strcmp(k, "--tv")) tv = atoi(NEXT());
+         else if (!strcmp(k, "--cmp")) cmp = atoi(NEXT());
+         else if (!strcmp(k, "--shbytes")) shbytes = strtoull(NEXT(), NULL, 10);
++        else if (!strcmp(k, "--mode")) mode_def = strtoll(NEXT(), NULL, 10);
++        else if (!strcmp(k, "--mrange")) { mr_lo = strtoull(NEXT(), NULL, 10); mr_hi = strtoull(NEXT(), NULL, 10); mr_on = true; }
+         else if (!strcmp(k, "--verify")) verify_mode = true;
+         else if (!strcmp(k, "--resume")) resume = true;
+         else if (!strcmp(k, "--hist")) hist_mode = true;
+@@ -688,11 +695,13 @@
+             char line[4096];
+             while (fgets(line, sizeof line, rf)) {
+                 if (!strstr(line, "\"covered\"")) continue;
+-                unsigned long long K, sh;
++                unsigned long long K, sh; long long md = 0;   /* lines without "mode" are mode 0 */
+                 const char *pk = strstr(line, "\"K\":"), *ps = strstr(line, "\"shift\":");
++                const char *pm = strstr(line, "\"mode\":");
++                if (pm && sscanf(pm, "\"mode\":%lld", &md) != 1) continue;
+                 if (pk && ps && sscanf(pk, "\"K\":%llu", &K) == 1 &&
+                     sscanf(ps, "\"shift\":%llu", &sh) == 1)
+-                    done_units.insert(unit_key(K, sh));
++                    done_units.insert(unit_key(K, sh, md));
+             }
+             fclose(rf);
+             fprintf(stderr, "resume: %zu units already recorded in %s\n",
+@@ -730,6 +739,8 @@
+     if (out && !of) { perror("open --out"); return 2; }
+ 
+     int global_best = 0;
++    /* test aid: APS_DUMPWIN=<file> lists every window that reaches stage 3 (mode K a0 d) */
++    FILE *dumpwin = getenv("APS_DUMPWIN") ? fopen(getenv("APS_DUMPWIN"), "a") : NULL;
+     const bool kbench = getenv("KBENCH") != NULL; double kb_total = 0;
+     const u32 TPB = getenv("KTPB") ? (u32)atoi(getenv("KTPB")) : 256u;
+     double t0 = lc_now_s(), covered = 0;
+@@ -748,7 +759,7 @@
+             n = m; }
+         u64 *data() { return p; }
+         u64 &operator[](size_t i) { return p[i]; } };
+-    struct Prep { int status; u64 K, shift, d, MOD, s1, s2, nthreads, total, tot_words;
++    struct Prep { int status; long long mode; u64 K, shift, d, MOD, s1, s2, nthreads, total, tot_words;
+                   u32 c1, c2; int ntc; double ksetup_s, prep_s;
+                   PinBuf Rpre, words;
+                   std::vector<u32> offs, rps, mags, k1s, k2s, k3s, k0s; u64 tcp5[5]; };
+@@ -782,6 +793,12 @@
+                 int bb = __builtin_ctzll(sito); sito &= sito - 1;
+                 nbits++;
+                 u64 a0 = Rb + (boff + (u64)bb) * MOD;
++                if (mr_on) { u64 mm = a0 / MOD; if (mm < mr_lo || mm >= mr_hi) continue; }
++                if (dumpwin) {
++                    #pragma omp critical(dumpwin)
++                    fprintf(dumpwin, "%lld %llu %llu %llu\n", U.mode, (unsigned long long)U.K,
++                            (unsigned long long)a0, (unsigned long long)d);
++                }
+                 u64 best_run = 0, best_start = 0, cur = 0, cur_start = 0;
+                 const u64 want = hist_mode ? 1 : ((report > 1) ? (u64)report : 1);
+                 for (u64 kk = 0; kk < nterms; kk++) {
+@@ -807,9 +824,10 @@
+                 {
+                     if ((int)run > global_best) {
+                         global_best = (int)run;
+-                        fprintf(stderr, "*** n=%d a=%llu d=%llu (K=%llu shift=%llu)\n",
++                        char mb[40] = ""; if (U.mode) snprintf(mb, sizeof mb, " mode=%lld", U.mode);
++                    fprintf(stderr, "*** n=%d a=%llu d=%llu (K=%llu shift=%llu%s)\n",
+                                 global_best, (unsigned long long)a, (unsigned long long)d,
+-                                (unsigned long long)U.K, (unsigned long long)U.shift);
++                                (unsigned long long)U.K, (unsigned long long)U.shift, mb);
+                     }
+                     if ((int)run >= report) hits.push_back(Hit{run, a, d, U.K});
+                 }
+@@ -818,15 +836,21 @@
+         double cpu_s = lc_now_s() - ts3;
+         if (of) {
+             for (const Hit &h : hits) {
++                if (U.mode == 0)
+                 fprintf(of, "{\"hit\":true,\"n\":%llu,\"a\":%llu,\"d\":%llu,\"K\":%llu}\n",
+                         (unsigned long long)h.n, (unsigned long long)h.a,
+                         (unsigned long long)h.d, (unsigned long long)h.K);
++                else
++                fprintf(of, "{\"hit\":true,\"n\":%llu,\"a\":%llu,\"d\":%llu,\"K\":%llu,\"mode\":%lld}\n",
++                        (unsigned long long)h.n, (unsigned long long)h.a,
++                        (unsigned long long)h.d, (unsigned long long)h.K, U.mode);
+             }
+         }
+         covered += (double)MOD * 64.0;
+         units++;
+         total_conf += nconf;
+         total_surv += nbits;
++        if (U.mode) fprintf(stderr, "mode=%lld ", U.mode);
+         fprintf(stderr, "K=%llu sh=%llu MOD=%llu thr=%llu res=%.4g tierC=%d "
+                 "surv=%u bits=%llu conf=%llu best=%d gpu=%.2fs cpu=%.2fs prep=%.2fs up=%.3fs wait=%.3fs (%.3g res/s)\n",
+                 (unsigned long long)U.K, (unsigned long long)U.shift,
+@@ -835,10 +859,10 @@
+                 (unsigned long long)nconf, global_best, gpu_s, cpu_s, prep_s, up_s, wait_s,
+                 (double)U.total / gpu_s);
+         if (of) {
+-            fprintf(of, "{\"K\":%llu,\"shift\":%llu,\"res\":%.6g,\"surv\":%u,"
++            fprintf(of, "{\"K\":%llu,\"shift\":%llu,\"mode\":%lld,\"res\":%.6g,\"surv\":%u,"
+                     "\"conf\":%llu,\"best\":%d,\"gpu_s\":%.2f,\"cpu_s\":%.2f,"
+                     "\"covered\":%.6g,\"overflow\":%s}\n",
+-                    (unsigned long long)U.K, (unsigned long long)U.shift,
++                    (unsigned long long)U.K, (unsigned long long)U.shift, U.mode,
+                     (double)U.total, nsurv, (unsigned long long)nconf, global_best,
+                     gpu_s, cpu_s, covered, overflow ? "true" : "false");
+             if (hist_mode) {
+@@ -905,38 +929,71 @@
+ 
+     /* work list: either the K range x shifts, or an explicit "K shift" file
+      * (tools/plan_units.py) consumed in order */
+-    std::vector<std::pair<u64, u64> > ulist;
++    std::vector<Job> ulist;
+     if (units_file) {
+         FILE *uf = fopen(units_file, "r");
+         if (!uf) { perror("open --units"); return 2; }
+-        unsigned long long a_, b_;
+-        while (fscanf(uf, "%llu %llu", &a_, &b_) == 2) ulist.push_back(std::make_pair((u64)a_, (u64)b_));
++        /* one unit per line: "K shift" (mode = --mode, default 0) or "K shift mode" */
++        char ul[256];
++        while (fgets(ul, sizeof ul, uf)) {
++            unsigned long long a_, b_; long long m_ = mode_def;
++            int nf = sscanf(ul, "%llu %llu %lld", &a_, &b_, &m_);
++            if (nf < 2) continue;
++            if (nf == 2) m_ = mode_def;
++            ulist.push_back(Job{(u64)a_, (u64)b_, m_});
++        }
+         fclose(uf);
+         fprintf(stderr, "units: %zu from %s\n", ulist.size(), units_file);
+     } else {
+         for (u64 K = kmin; K <= kmax; K++)
+-            for (u64 sh = shift0; sh < shift0 + shifts; sh++) ulist.push_back(std::make_pair(K, sh));
++            for (u64 sh = shift0; sh < shift0 + shifts; sh++) ulist.push_back(Job{K, sh, mode_def});
+     }
+-    auto prepare = [&](const u64 K, const u64 shift, Prep &PP) -> int {
++    auto prepare = [&](const u64 K, const u64 shift, const long long mode, Prep &PP) -> int {
+         PinBuf &Rpre = PP.Rpre, &words = PP.words;
+         std::vector<u32> &offs = PP.offs, &rps = PP.rps, &mags = PP.mags, &k1s = PP.k1s,
+                          &k2s = PP.k2s, &k3s = PP.k3s, &k0s = PP.k0s;
+         std::vector<u64> tcpv(MAXTC); u64 *tcp = tcpv.data();
+         double t_ks = lc_now_s();
+-        u64 d = K * D0;
+-        if (d / D0 != K) { fprintf(stderr, "K overflow at %llu\n", (unsigned long long)K); return 3; }
++        /* ---- square option (mode != 0): prime sq = |mode| is allowed to divide ONE
++         * term t_j of the window, with sq^2 | t_j:  a = -j d (mod sq^2).
++         *   mode = +q (F2): q is a bad prime > nterms not in D0; j = 0..nterms-1.
++         *   mode = -q (F1): q | D0 is taken out of d (D0u = D0 / q); only j whose
++         *                   neighbours j +- q fall outside the window are allowed.
++         * Either way sq is neither pinned mod q nor sieved avoid-only for this unit. */
++        u64 D0u = D0, sq = 0;
++        if (mode != 0) {
++            sq = (u64)(mode < 0 ? -mode : mode);
++            bool ok = sq > 5 && sq < 100000 && sq % 3 == 2 && K % sq != 0 &&
++                      ((mode < 0) == (D0 % sq == 0));
++            for (u64 f = 2; ok && f * f <= sq; f++) if (sq % f == 0) ok = false;
++            if (ok && mode < 0) { D0u = D0 / sq; if (D0u % sq == 0) ok = false; }
++            if (!ok) { fprintf(stderr, "K=%llu: invalid mode %lld (need a bad prime; -q iff q | D0; q must not divide K); skipping\n",
++                               (unsigned long long)K, mode); return 1; }
++        }
++        u64 d = K * D0u;
++        if (d / D0u != K) { fprintf(stderr, "K overflow at %llu\n", (unsigned long long)K); return 3; }
+ 
+         /* ---- stage-1 components (identical rules to apsearch.c) ---- */
+         comp C[MAXC]; int nc = 0; u64 MOD = 1;
+         #define ADDC(m_, s_, t_, c_) do { C[nc].m=(m_); C[nc].s=(s_); \
+             C[nc].t=(t_); C[nc].c=(c_); MOD *= (m_); nc++; } while (0)
+         ADDC(3, 1, 0, 1);
+-        if (D0 % 2 == 0) ADDC(2, 1, 0, 1);
+-        if (D0 % 5 == 0) ADDC(5, 1, 1, 4);
++        if (D0u % 2 == 0) ADDC(2, 1, 0, 1);
++        if (D0u % 5 == 0) ADDC(5, 1, 1, 4);
+         int ntb = 0;
++        if (sq) {
++            const u64 m2 = sq * sq, st = (m2 - d % m2) % m2;          /* step -d (mod sq^2) */
++            const u64 jlo = nterms > sq ? nterms - sq : 0;
++            const u64 jhi = (sq - 1 < nterms - 1) ? sq - 1 : nterms - 1;
++            if (jlo > jhi || MOD * m2 > modcap) {
++                fprintf(stderr, "K=%llu: mode %lld has no single-hit position or exceeds --modcap; skipping\n",
++                        (unsigned long long)K, mode); return 1; }
++            ADDC(m2, lc_mulmod(jlo, st, m2), st, jhi - jlo + 1);
++            ntb++;
++        }
+         for (u64 i = 0; i < n_sp && nc < MAXC - 1; i++) {
+             u64 q = lc_sp(i);
+-            if (q <= nterms || q % 3 != 2 || d % q == 0) continue;
++            if (q <= nterms || q % 3 != 2 || d % q == 0 || q == sq) continue;
+             if (MOD > (u64)4e18 / q || MOD * q > modcap) break;
+             u64 dq = d % q;
+             ADDC(q, dq, dq, q - nterms);
+@@ -1010,8 +1067,8 @@
+             if (r > b2) break;
+             bool pinned = false;
+             for (int t = 0; t < nc; t++) if (C[t].m == r) pinned = true;
+-            if (pinned) continue;
+-            bool divD = (D0 % r == 0);
++            if (pinned || r == sq) continue;      /* sq is handled by its q^2 pin, never avoid-only */
++            bool divD = (D0u % r == 0);
+             if (!divD && (r % 3 != 2 || d % r == 0 || r <= nterms)) continue;
+             /* strided kernel: a prime with s2 = 0 mod r has no rotation; drop it
+              * from the GPU filter for this K (stage 3 is exact, so nothing is lost) */
+@@ -1021,7 +1078,7 @@
+         for (int i = 0; i < ntc; i++) {
+             int bj = i; double bk = -1;
+             for (int j = i; j < ntc; j++) {
+-                double kill = (D0 % tcp[j] == 0) ? 1.0 / (double)tcp[j]
++                double kill = (D0u % tcp[j] == 0) ? 1.0 / (double)tcp[j]
+                                                  : (double)nterms / (double)tcp[j];
+                 if (kill > bk) { bk = kill; bj = j; }
+             }
+@@ -1083,7 +1140,7 @@
+                 if (kernel >= 20) dst = tmp.data();
+                 for (u64 x = 0; x < r; x++) dst[x] = ~0ULL;
+                 {
+-                    const u64 nz = (D0 % r == 0) ? 1 : nterms, dm = d % r;
++                    const u64 nz = (D0u % r == 0) ? 1 : nterms, dm = d % r;
+                     u64 v = 0;
+                     for (u64 kk = 0; kk < nz; kk++) {
+                         u64 x = (v + r - b0) % r;
+@@ -1105,16 +1162,16 @@
+ 
+             PP.prep_s = lc_now_s() - t_prep;
+         }
+-        PP.K = K; PP.shift = shift; PP.d = d; PP.MOD = MOD; PP.s1 = sstep[in1]; PP.s2 = sstep[in2];
++        PP.K = K; PP.shift = shift; PP.mode = mode; PP.d = d; PP.MOD = MOD; PP.s1 = sstep[in1]; PP.s2 = sstep[in2];
+         PP.c1 = (u32)C[in1].c; PP.c2 = (u32)C[in2].c; PP.nthreads = nthreads; PP.total = total;
+         PP.ntc = ntc; PP.tot_words = tot_words;
+         for (int i = 0; i < 5; i++) PP.tcp5[i] = tcp[i];
+         return 0;
+     };
+-    std::vector<std::pair<u64, u64> > jobs;
++    std::vector<Job> jobs;
+     for (size_t ui = 0; ui < ulist.size(); ui++) {
+         if (ui % slice_n != slice_i) continue;
+-        if (!done_units.empty() && done_units.count(unit_key(ulist[ui].first, ulist[ui].second))) continue;
++        if (!done_units.empty() && done_units.count(unit_key(ulist[ui].K, ulist[ui].shift, ulist[ui].mode))) continue;
+         jobs.push_back(ulist[ui]);
+     }
+     std::vector<Prep *> slot(jobs.size(), (Prep *)NULL);
+@@ -1138,7 +1195,7 @@
+                 if (!pq_free.empty()) { pp = pq_free.back(); pq_free.pop_back(); }
+             }
+             if (!pp) pp = new Prep();     /* recycled: the big vectors keep their capacity */
+-            pp->status = prepare(jobs[j].first, jobs[j].second, *pp);
++            pp->status = prepare(jobs[j].K, jobs[j].shift, jobs[j].mode, *pp);
+             { std::lock_guard<std::mutex> lk(pq_m); slot[j] = pp; }
+             pq_cv.notify_all();
+         }
+@@ -1241,7 +1298,7 @@
+             P.c1 = PP.c1; P.c2 = PP.c2; P.ntc = (u32)ntc;
+             P.cap = CAP; P.nthreads = (u32)nthreads;
+             Unit &U = inflight[buf];
+-            U.K = K; U.shift = shift; U.d = d; U.MOD = MOD; U.total = total;
++            U.K = K; U.shift = shift; U.mode = PP.mode; U.d = d; U.MOD = MOD; U.total = total;
+             U.nthreads = nthreads; U.ntc = ntc; U.valid = true;
+             U.t_launch = lc_now_s();
+             u32 blocks = (u32)((nthreads + TPB - 1) / TPB);
+@@ -1345,6 +1402,7 @@
+     worker.join();
+ 
+     if (of) fclose(of);
++    if (dumpwin) fclose(dumpwin);
+     if (kbench) fprintf(stderr, "KBENCH total kernel %.4fs\n", kb_total);
+     printf("GPU BEST n=%d  units=%llu covered=%.4g raw a  survivors=%llu confirmed=%llu  %.1fs%s\n",
+            global_best, (unsigned long long)units, covered,
