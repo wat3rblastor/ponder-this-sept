@@ -6,7 +6,7 @@ last term `311958331`.**
 **Longest progression found: `n = 55` terms, `a = 11687581876345393`, `d = 202927451159070`.**
 
 Both are verified two independent ways (§3). The mandatory internal target of `n ≥ 58` is
-**NOT MET** — §5 explains why, with numbers.
+**NOT MET** — see §5b for the status of the search.
 
 | goal | target | status |
 |---|---|---|
@@ -143,27 +143,31 @@ the hit outside it.
 
 ---
 
-## 5. Why n ≥ 58 was not reached
+## 5. Every distinct progression of 55 or more terms found
 
-Not for want of effort or algorithm — the target is out of range for this machine:
+Each row is a different progression: rescaled copies (`m·a`, `m·d` for a Loeschian multiplier
+`m`, which the search re-finds routinely) are reduced to the primitive form and listed once.
+Every row passes both `src/verify.py` and `src/crosscheck.py` at the stated length.
 
-- The engine enumerates the admissible residues of `a` **directly by nested additive loops**, so
-  an inadmissible candidate is never constructed (~3·10⁴ saved), then settles 64 candidates per
-  modulo with precomputed 64-bit masks over ~600 further primes. An independent analysis showed
-  this is at a *provable floor*: the minimum number of residues any such scheme must enumerate is
-  exactly `∏(q−58) = 1167541375`, which is what it enumerates.
-- Stage 1+2 was ported to the M2's integrated GPU (`src/c/apsearch_gpu.m`), measured at
-  **4.1·10⁸ residues/s — about 9× the whole 8-core CPU**.
-- Even so: a calibrated model puts **the smallest last term able to carry 58 terms at ~4.5·10¹⁸**,
-  while this search covers terms to `7.3·10¹⁶`. A 58-term progression almost certainly does not
-  *exist* in the region searched, and reaching `~10¹⁸` costs on the order of 10³ times more
-  compute than 12 hours here. The same model reproduces the published record staircase
-  (48, 50, 51, 55, 57), which is the main reason to trust it.
-- Two tempting shortcuts are **provably impossible**, not merely unlikely: no constant `c` can
-  extend a progression or repair a near miss (scaling XORs every term's bad-parity vector
-  identically, and in a primitive AP no two terms can share a nonempty vector), and no
-  meet-in-the-middle exists (for fixed `d` every constraint is a congruence on the single unknown
-  `a`). PROGRESS.md lists everything ruled out and why.
+| n | a | d | last term | d factored |
+|---|---|---|---|---|
+| 55 | `11687581876345393` | `202927451159070` | `22645664238935173` | 2 * 3^3 * 5 * 11 * 17 * 23 * 29 * 41 * 47 * 53 * 59 |
+| 55 | `296246969176050787` | `11950172123811900` | `941556263861893387` | 2^2 * 3 * 5^2 * 11 * 17 * 23 * 29 * 41 * 47 * 53^2 * 59 |
+
+Re-check any row: `python3 src/verify.py <a> <d> <n> --maximal`
+
+## 5b. Status of the n ≥ 58 target
+
+**NOT MET**. The search runs on 8 NVIDIA RTX PRO 6000 Blackwell GPUs at roughly 6·10¹¹ residues per
+second (`src/c/apsearch_cuda.cu`, launched by `tools/multi_gpu.sh`). The engine enumerates the
+admissible residues of `a` directly by nested additive loops, so an inadmissible candidate is
+never constructed, then settles 64 candidates per residue with precomputed bitmasks over every
+bad prime up to 10⁴, and confirms survivors with an exact test. A calibrated model puts the
+expected yield at a few tenths of a 58-term progression per hour at that rate; PROGRESS.md has
+the model, the measurements, and everything that was ruled out. Two shortcuts are provably
+impossible: no constant `c` can extend a progression or repair a near miss, and no
+meet-in-the-middle exists (for fixed `d` every constraint is a congruence on the single unknown
+`a`).
 
 ## 6. Where everything is
 
@@ -171,4 +175,4 @@ Not for want of effort or algorithm — the target is out of range for this mach
 - `PROGRESS.md` — dated log: what was tried, found, and ruled out, with the cost model.
 - `experiments/` — campaigns and raw per-work-unit output.
 - `src/` — Loeschian core, authoritative verifier, constructive cross-check, and four searchers
-  (flat sieve, class-compressed, CPU two-stage CRT, and the GPU port).
+  (flat sieve, class-compressed, CPU two-stage CRT, and the Metal and CUDA GPU engines).

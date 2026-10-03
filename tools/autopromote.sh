@@ -38,5 +38,12 @@ the constructive cross-check in src/crosscheck.py." >> "$LOG" 2>&1
       echo "$(date '+%F %T') promote REFUSED n=$n -- left alone" >> "$LOG"
     fi
   fi
+  # list every distinct (primitive) progression of 55+ terms in ANSWER.md
+  if python3 tools/list55.py >> "$LOG" 2>&1; then
+    git add records.json ANSWER.md >> "$LOG" 2>&1
+    git commit -q -m "answer: list every distinct progression of 55+ terms found so far" >> "$LOG" 2>&1
+    git push -q origin HEAD >> "$LOG" 2>&1
+    echo "$(date '+%F %T') 55+ list updated and pushed" >> "$LOG"
+  fi
   sleep "$POLL"
 done
