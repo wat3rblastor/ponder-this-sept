@@ -392,3 +392,19 @@ plus `tools/autopromote.sh 60`. Stops itself when records.json reaches n >= 58.
   `RENTED_GPU.md`, engine `--slice i n`. GOAL.md opens with a START HERE block.
 - The single-GPU box is being shut down by the user; the search continues on a rented multi-GPU
   machine from this repo alone. Units finished here after the final push may be repeated there.
+
+### GPU research agent: warp-compaction kernel measured, not adopted (04:55 UTC)
+
+Candidate `--kernel 30` (fixed unrolled prefix of T0 rows, ballot/shuffle compaction of surviving
+groups, optional dual-copy tables with 128-bit loads) is kept, unmerged, in
+`experiments/2026-10-03-cuda/kernel30-candidate/`. It is **correct** (hit sets identical to the
+reference on the validation units in three configurations) but measured only **1.04–1.08×**:
+0.23–0.24 s vs 0.25 s on a standard unit, 4.97 s vs 5.17 s on K=6319 — not the modelled
+1.3–1.5×. The vector-load-only variant was slower (0.30 s). Not adopted: the gain does not justify
+swapping the production kernel mid-campaign. The agent's CPU model says a group of 7 needs ~25
+rows while its warp runs ~61, and infers the kernel is L1-bandwidth-bound; a two-stage
+compaction is the remaining idea if someone wants to push further.
+Large units (131/137 pinned, e.g. K=6319) run at 1.29e10 residues/s solo against 1.87e10 for
+standard units: their early rows are weaker, so chains run longer.
+Agent's estimate for other cards, from SM count × clock: RTX 5090 ≈ 3.5–4× the GB10,
+RTX 4090 ≈ 2.5–3×. Unmeasured; `tools/build_here.sh` prints the real figure.
