@@ -54,7 +54,7 @@ typedef __uint128_t u128;
 
 #define D0_DEFAULT 382160924970ULL   /* 3 * 2*5*11*17*23*29*41*47*53 */
 #define MAXC 16
-#define MAXTC 2560                   /* tier-C primes (bad primes <= b2) */
+#define MAXTC 2048                   /* tier-C primes; 7 constant arrays must fit 64 KB */
 
 static volatile sig_atomic_t stop_requested = 0;
 static void on_signal(int s) { (void)s; stop_requested = 1; }
@@ -337,6 +337,147 @@ sieve_ilpN(const u64 *__restrict__ Rpre, const u64 *__restrict__ words,
     }
 }
 
+/* Variant 10+N: FLAT x N. N chains per thread, and each chain refills with the
+ * thread's next residue the moment its word dies (own chain position t per
+ * chain), so no chain waits for the slowest of its group or of its warp.
+ * Per-prime constants come from shared memory since t is not uniform.
+ * Uses three 17-bit limbs: needs MOD < 2^51 and fold = 2^17*(1+2*b2) < 2^32. */
+template <int NCH>
+__global__ void __launch_bounds__(256)
+sieve_flatN(const u64 *__restrict__ Rpre, const u64 *__restrict__ words,
+            Params P, u32 *cnt, u64 *hits)
+{
+    __shared__ uint4 s_c[MAXTC_SH];     /* {rp | k1<<16, k2, mag, off}, k = 2^17, 2^34 mod r */
+    for (u32 t = threadIdx.x; t < P.ntc; t += blockDim.x) {
+        u32 r = c_rp[t];
+        u32 k1 = (u32)((1ULL << 17) % r), k2 = (u32)((1ULL << 34) % r);
+        s_c[t] = make_uint4(r | (k1 << 16), k2, c_mag[t], c_off[t]);
+    }
+    __syncthreads();
+    u32 gid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (gid >= P.nthreads) return;
+    /* residue dispenser */
+    u64 R = Rpre[gid], Rn = R;
+    u32 i1 = 0, i2 = 0;
+    bool more = true;
+    u64 Rc[NCH], sito[NCH];
+    u32 tc[NCH];
+    int nact = 0;
+    #pragma unroll
+    for (int c = 0; c < NCH; c++) {
+        Rc[c] = Rn; tc[c] = 0;
+        if (more) {
+            sito[c] = ~0ULL; nact++;
+            if (++i2 < P.c2) { Rn += P.s2; if (Rn >= P.MOD) Rn -= P.MOD; }
+            else { i2 = 0;
+                if (++i1 < P.c1) { R += P.s1; if (R >= P.MOD) R -= P.MOD; Rn = R; }
+                else more = false; }
+        } else sito[c] = 0ULL;
+    }
+    const u32 ntc = P.ntc;
+    while (nact > 0) {
+        #pragma unroll
+        for (int c = 0; c < NCH; c++) {
+            if (sito[c] != 0ULL) {
+                uint4 k = s_c[tc[c]];
+                u32 p = k.x & 0xFFFF;
+                u64 rr = Rc[c];
+                u32 x = (u32)(rr & 0x1FFFF) + (u32)((rr >> 17) & 0x1FFFF) * (k.x >> 16)
+                      + (u32)(rr >> 34) * k.y;
+                u32 r = x - __umulhi(x, k.z) * p;
+                if (r >= p) r -= p;
+                if (r >= p) r -= p;
+                u64 w = sito[c] & words[k.w + r];
+                u32 t = tc[c] + 1;
+                if (w == 0ULL || t == ntc) {
+                    if (w != 0ULL) {
+                        u32 sidx = atomicAdd(cnt, 1u);
+                        if (sidx < P.cap) { hits[2 * sidx] = rr; hits[2 * sidx + 1] = w; }
+                    }
+                    if (more) {
+                        Rc[c] = Rn; w = ~0ULL; t = 0;
+                        if (++i2 < P.c2) { Rn += P.s2; if (Rn >= P.MOD) Rn -= P.MOD; }
+                        else { i2 = 0;
+                            if (++i1 < P.c1) { R += P.s1; if (R >= P.MOD) R -= P.MOD; Rn = R; }
+                            else more = false; }
+                    } else { w = 0ULL; nact--; }
+                }
+                sito[c] = w; tc[c] = t;
+            }
+        }
+    }
+}
+
+/* Variant 20: STRIDED groups. The innermost loop is walked WITHOUT reducing
+ * mod MOD: A = R + i1*s1 + i2*s2 as a plain integer (< ~105*MOD < 2^57). An
+ * unreduced A = Rred + w*MOD stands for the candidates a = A + (b+64*shift)*MOD,
+ * i.e. the same residue class with its 64-candidate window moved up by w, so
+ * every candidate is still a legitimate, distinct one; a unit (K, shift) then
+ * covers, per class, the multiples [64*shift + w, 64*shift + 64 + w), w < c1+c2.
+ *
+ * The gain: A mod r now advances by exactly s2 mod r per i2 step, so with each
+ * table stored pre-rotated, W'[y] = W[(y * s2) mod r], NCH consecutive i2
+ * values read NCH ADJACENT words: one index computation and ~one cache line
+ * per prime for the whole group, instead of one of each per residue. The
+ * rotation index y0 = (A mod r) * (s2 mod r)^-1 comes straight out of the limb
+ * fold by pre-multiplying the fold constants with the inverse. Tables carry
+ * NCH-1 wrap-around words so y0 + j needs no reduction. */
+__constant__ u32 c_k0[MAXTC];
+template <int NCH, int U>
+__global__ void __launch_bounds__(256)
+sieve_strided(const u64 *__restrict__ Rpre, const u64 *__restrict__ words,
+              Params P, u32 *cnt, u64 *hits)
+{
+    u32 gid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (gid >= P.nthreads) return;
+    u64 A1 = Rpre[gid];
+    const u64 sG = P.s2 * NCH;
+    for (u32 i1 = 0; i1 < P.c1; ++i1) {
+        u64 Ag = A1;
+        for (u32 i2 = 0; i2 < P.c2; i2 += NCH) {
+            u32 l0 = (u32)(Ag & 0xFFFF), l1 = (u32)((Ag >> 16) & 0xFFFF);
+            u32 l2 = (u32)((Ag >> 32) & 0xFFFF), l3 = (u32)(Ag >> 48);
+            u64 sito[NCH];
+            #pragma unroll
+            for (int c = 0; c < NCH; c++) sito[c] = (i2 + c < P.c2) ? ~0ULL : 0ULL;
+            /* U primes per exit test: the loads of U table rows are issued back
+             * to back and the branch waits once per U rows instead of once per
+             * row. ntc is padded by the host to a multiple of U with all-ones
+             * dummy rows (prime 3, never kills). */
+            for (u32 t = 0; t < P.ntc; t += U) {
+                const u64 *w[U];
+                #pragma unroll
+                for (int u = 0; u < U; u++) {
+                    u32 p = c_rp[t + u];
+                    u32 x = l0 * c_k0[t + u] + l1 * c_k1[t + u] + l2 * c_k2[t + u] + l3 * c_k3[t + u];
+                    u32 y = x - __umulhi(x, c_mag[t + u]) * p;
+                    if (y >= p) y -= p;
+                    if (y >= p) y -= p;
+                    w[u] = words + c_off[t + u] + y;
+                }
+                u64 any = 0;
+                #pragma unroll
+                for (int c = 0; c < NCH; c++) {
+                    u64 v = w[0][c];
+                    #pragma unroll
+                    for (int u = 1; u < U; u++) v &= w[u][c];
+                    sito[c] &= v; any |= sito[c];
+                }
+                if (any == 0ULL) break;
+            }
+            #pragma unroll
+            for (int c = 0; c < NCH; c++) {
+                if (sito[c] != 0ULL) {
+                    u32 s = atomicAdd(cnt, 1u);
+                    if (s < P.cap) { hits[2 * s] = Ag + (u64)c * P.s2; hits[2 * s + 1] = sito[c]; }
+                }
+            }
+            Ag += sG;
+        }
+        A1 += P.s1;
+    }
+}
+
 /* ------------------------------------------------------------------ host --- */
 
 struct comp { u64 m, s, t, c; };
@@ -363,8 +504,10 @@ int main(int argc, char **argv) {
     int report = 44;
     const char *out = NULL;
     bool verify_mode = false, resume = false;
-    int nomp = 0, kernel = 4;        /* 4 chains per thread: 2.7x the single-chain kernel */
+    int nomp = 0, kernel = 20;       /* strided groups; see the kernel comments for the measured ladder */
     u64 shbytes = 65536;
+    int unr = 4;                     /* primes per exit test in the strided kernel */
+    int nch = 7;                     /* group size for the strided kernel (--kernel 20) */
 
     for (int i = 1; i < argc; i++) {
         const char *k = argv[i];
@@ -381,6 +524,8 @@ int main(int argc, char **argv) {
         else if (!strcmp(k, "--D0")) D0 = strtoull(NEXT(), NULL, 10);
         else if (!strcmp(k, "--threads")) nomp = atoi(NEXT());
         else if (!strcmp(k, "--kernel")) kernel = atoi(NEXT());
+        else if (!strcmp(k, "--nch")) nch = atoi(NEXT());
+        else if (!strcmp(k, "--unr")) unr = atoi(NEXT());
         else if (!strcmp(k, "--shbytes")) shbytes = strtoull(NEXT(), NULL, 10);
         else if (!strcmp(k, "--verify")) verify_mode = true;
         else if (!strcmp(k, "--resume")) resume = true;
@@ -448,8 +593,9 @@ int main(int argc, char **argv) {
 
     /* host-side scratch, reused across units */
     std::vector<u64> Rpre, words;
-    std::vector<u32> offs, rps, mags, k1s, k2s, k3s;
+    std::vector<u32> offs, rps, mags, k1s, k2s, k3s, k0s;
     u64 tcp[MAXTC];
+    double prep_s = 0, up_s = 0, wait_s = 0, ksetup_s = 0, fin_s = 0, launch_s = 0;
 
     /* ---- finish a unit: wait for its kernel, pull survivors, stage 3 ---- */
     auto finish_unit = [&](int b) {
@@ -467,8 +613,11 @@ int main(int argc, char **argv) {
                     nsurv, CAP, (unsigned long long)U.K, (unsigned long long)U.shift);
             nsurv = CAP;
         }
-        if (nsurv)
-            CK(cudaMemcpy(h_hits.data(), d_H[b], (size_t)nsurv * 16, cudaMemcpyDeviceToHost));
+        if (nsurv) {   /* on this unit's stream: a plain cudaMemcpy uses the legacy default
+                        * stream, which waits for the OTHER stream's running kernel */
+            CK(cudaMemcpyAsync(h_hits.data(), d_H[b], (size_t)nsurv * 16, cudaMemcpyDeviceToHost, stream[b]));
+            CK(cudaStreamSynchronize(stream[b]));
+        }
 
         /* ---- stage 3 on the CPU: exact test of each surviving window ---- */
         double ts3 = lc_now_s();
@@ -525,11 +674,11 @@ int main(int argc, char **argv) {
         total_conf += nconf;
         total_surv += nbits;
         fprintf(stderr, "K=%llu sh=%llu MOD=%llu thr=%llu res=%.4g tierC=%d "
-                "surv=%u bits=%llu conf=%llu best=%d gpu=%.2fs cpu=%.2fs (%.3g res/s)\n",
+                "surv=%u bits=%llu conf=%llu best=%d gpu=%.2fs cpu=%.2fs prep=%.2fs up=%.3fs wait=%.3fs (%.3g res/s)\n",
                 (unsigned long long)U.K, (unsigned long long)U.shift,
                 (unsigned long long)MOD, (unsigned long long)U.nthreads,
                 (double)U.total, U.ntc, nsurv, (unsigned long long)nbits,
-                (unsigned long long)nconf, global_best, gpu_s, cpu_s,
+                (unsigned long long)nconf, global_best, gpu_s, cpu_s, prep_s, up_s, wait_s,
                 (double)U.total / gpu_s);
         if (of) {
             fprintf(of, "{\"K\":%llu,\"shift\":%llu,\"res\":%.6g,\"surv\":%u,"
@@ -554,6 +703,7 @@ int main(int argc, char **argv) {
 
     int buf = 0;
     for (u64 K = kmin; K <= kmax && !stop_requested; K++) {
+        double t_ks = lc_now_s();
         u64 d = K * D0;
         if (d / D0 != K) { fprintf(stderr, "K overflow at %llu\n", (unsigned long long)K); break; }
 
@@ -644,6 +794,9 @@ int main(int argc, char **argv) {
             if (pinned) continue;
             bool divD = (D0 % r == 0);
             if (!divD && (r % 3 != 2 || d % r == 0 || r <= nterms)) continue;
+            /* strided kernel: a prime with s2 = 0 mod r has no rotation; drop it
+             * from the GPU filter for this K (stage 3 is exact, so nothing is lost) */
+            if (kernel == 20 && sstep[in2] % r == 0) continue;
             tcp[ntc++] = r;
         }
         for (int i = 0; i < ntc; i++) {
@@ -655,10 +808,18 @@ int main(int argc, char **argv) {
             }
             u64 tt = tcp[i]; tcp[i] = tcp[bj]; tcp[bj] = tt;
         }
+        const int ntc_real = ntc;
+        if (kernel == 20) while (ntc % unr) tcp[ntc++] = 3;      /* all-ones dummy rows */
+        const u64 pad = (kernel == 20) ? (u64)(nch - 1) : 0;
+        if (kernel == 20) {
+            u64 amax = MOD + (u64)C[in1].c * sstep[in1] + ((u64)C[in2].c + (u64)nch) * sstep[in2];
+            if (b2 > 16383 || MOD >= (1ULL << 51) || amax < MOD) {
+                fprintf(stderr, "FATAL: strided kernel needs b2 <= 16383 and MOD < 2^51\n"); return 2; }
+        }
         u64 tot_words = 0;
-        for (int i = 0; i < ntc; i++) tot_words += tcp[i];
+        for (int i = 0; i < ntc; i++) tot_words += tcp[i] + pad;
         offs.resize(ntc); rps.resize(ntc); mags.resize(ntc);
-        k1s.resize(ntc); k2s.resize(ntc); k3s.resize(ntc);
+        k1s.resize(ntc); k2s.resize(ntc); k3s.resize(ntc); k0s.resize(ntc);
         words.resize(tot_words);
         {
             u64 acc = 0;
@@ -669,7 +830,16 @@ int main(int argc, char **argv) {
                 k1s[t] = (u32)(((u64)1 << 16) % r);
                 k2s[t] = (u32)(((u64)1 << 32) % r);
                 k3s[t] = (u32)(((u64)1 << 48) % r);
-                acc += r;
+                k0s[t] = 1;
+                if (kernel == 20 && t >= ntc_real) { k0s[t] = k1s[t] = k2s[t] = k3s[t] = 0; }
+                else if (kernel == 20) {     /* pre-multiply the fold by (s2 mod r)^-1 */
+                    u64 inv = lc_inv_mod(sstep[in2] % r, r);
+                    k0s[t] = (u32)inv;
+                    k1s[t] = (u32)((u64)k1s[t] * inv % r);
+                    k2s[t] = (u32)((u64)k2s[t] * inv % r);
+                    k3s[t] = (u32)((u64)k3s[t] * inv % r);
+                }
+                acc += r + pad;
             }
             if (K == kmin) {
                 /* magic-modulo self-check against %, for every prime, on a
@@ -696,9 +866,12 @@ int main(int argc, char **argv) {
         for (u64 shift = shift0; shift < shift0 + shifts && !stop_requested; shift++) {
             if (!done_units.empty() && done_units.count(unit_key(K, shift))) continue;
             u64 boff = shift * 64;
+            double t_prep = lc_now_s();
+            if (shift == shift0) ksetup_s = t_prep - t_ks;
             #pragma omp parallel for schedule(dynamic, 1)
             for (int t = 0; t < ntc; t++) {
                 u64 r = tcp[t], acc = offs[t];
+                if (t >= ntc_real) { for (u64 y = 0; y < r + pad; y++) words[acc + y] = ~0ULL; continue; }
                 std::vector<char> ok(r, 0);
                 if (D0 % r == 0) { for (u64 x = 0; x < r; x++) ok[x] = (x != 0); }
                 else {
@@ -708,18 +881,31 @@ int main(int argc, char **argv) {
                 }
                 u64 modr = MOD % r;
                 u64 b0 = lc_mulmod(boff % r, modr, r);
+                std::vector<u64> tmp;
+                u64 *dst = &words[acc];
+                if (kernel == 20) { tmp.resize(r); dst = tmp.data(); }
                 for (u64 x = 0; x < r; x++) {
                     u64 w = 0, y = (x + b0) % r;
                     for (int b = 0; b < 64; b++) {
                         if (ok[y]) w |= (u64)1 << b;
                         y += modr; if (y >= r) y -= r;
                     }
-                    words[acc + x] = w;
+                    dst[x] = w;
+                }
+                if (kernel == 20) {          /* W'[y] = W[(y * s2) mod r], plus wrap pad */
+                    u64 s2r = sstep[in2] % r, x = 0;
+                    for (u64 y = 0; y < r + pad; y++) {
+                        words[acc + y] = tmp[x];
+                        x += s2r; if (x >= r) x -= r;
+                    }
                 }
             }
 
+            prep_s = lc_now_s() - t_prep;
             /* ---- buffer set `buf` is free once the unit before last is finished ---- */
+            double t_fin = lc_now_s();
             finish_unit(buf);
+            fin_s = lc_now_s() - t_fin;
             if (cap_R[buf] < nthreads) {
                 if (d_R[buf]) CK(cudaFree(d_R[buf]));
                 CK(cudaMalloc(&d_R[buf], nthreads * 8)); cap_R[buf] = nthreads;
@@ -728,18 +914,24 @@ int main(int argc, char **argv) {
                 if (d_W[buf]) CK(cudaFree(d_W[buf]));
                 CK(cudaMalloc(&d_W[buf], tot_words * 8)); cap_W[buf] = tot_words;
             }
-            /* constants are shared by both streams: make sure the other
-             * stream's kernel is done before overwriting them */
+            /* uploads go first, on this buffer set's own stream, so they overlap
+             * the other stream's kernel; only the shared constants need it done */
+            double t_up = lc_now_s();
+            CK(cudaMemcpyAsync(d_R[buf], Rpre.data(), nthreads * 8, cudaMemcpyHostToDevice, stream[buf]));
+            CK(cudaMemcpyAsync(d_W[buf], words.data(), tot_words * 8, cudaMemcpyHostToDevice, stream[buf]));
+            CK(cudaMemsetAsync(d_cnt[buf], 0, 4, stream[buf]));
+            CK(cudaStreamSynchronize(stream[buf]));
+            up_s = lc_now_s() - t_up;
+            double t_wait = lc_now_s();
             if (inflight[buf ^ 1].valid) CK(cudaEventSynchronize(inflight[buf ^ 1].done));
+            wait_s = lc_now_s() - t_wait;
             CK(cudaMemcpyToSymbol(c_off, offs.data(), ntc * 4));
             CK(cudaMemcpyToSymbol(c_rp, rps.data(), ntc * 4));
             CK(cudaMemcpyToSymbol(c_mag, mags.data(), ntc * 4));
             CK(cudaMemcpyToSymbol(c_k1, k1s.data(), ntc * 4));
             CK(cudaMemcpyToSymbol(c_k2, k2s.data(), ntc * 4));
             CK(cudaMemcpyToSymbol(c_k3, k3s.data(), ntc * 4));
-            CK(cudaMemcpyAsync(d_R[buf], Rpre.data(), nthreads * 8, cudaMemcpyHostToDevice, stream[buf]));
-            CK(cudaMemcpyAsync(d_W[buf], words.data(), tot_words * 8, cudaMemcpyHostToDevice, stream[buf]));
-            CK(cudaMemsetAsync(d_cnt[buf], 0, 4, stream[buf]));
+            CK(cudaMemcpyToSymbol(c_k0, k0s.data(), ntc * 4));
 
             Params P;
             P.MOD = MOD; P.s1 = sstep[in1]; P.s2 = sstep[in2];
@@ -753,6 +945,30 @@ int main(int argc, char **argv) {
             if (kernel == 1) {
                 if (ntc > MAXTC_SH) { fprintf(stderr, "FATAL: ntc > MAXTC_SH\n"); return 2; }
                 sieve_flat<<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
+            } else if (kernel == 20) {
+                #define LS(N, UU) sieve_strided<N, UU><<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf])
+                switch (nch * 10 + unr) {
+                    case 41: LS(4, 1); break; case 81: LS(8, 1); break; case 111: LS(11, 1); break;
+                    case 141: LS(14, 1); break; case 191: LS(19, 1); break; case 281: LS(28, 1); break;
+                    case 82: LS(8, 2); break; case 112: LS(11, 2); break; case 142: LS(14, 2); break;
+                    case 72: LS(7, 2); break; case 73: LS(7, 3); break; case 74: LS(7, 4); break;
+                    case 83: LS(8, 3); break; case 113: LS(11, 3); break; case 143: LS(14, 3); break;
+                    case 84: LS(8, 4); break; case 114: LS(11, 4); break; case 144: LS(14, 4); break;
+                    case 86: LS(8, 6); break; case 116: LS(11, 6); break; case 118: LS(11, 8); break;
+                    default: fprintf(stderr, "bad --nch/--unr\n"); return 2;
+                }
+                #undef LS
+            } else if (kernel >= 10) {
+                if (ntc > MAXTC_SH || MOD >= (1ULL << 51) || b2 > 16000) {
+                    fprintf(stderr, "FATAL: flatN needs ntc<=%d, MOD<2^51, b2<=16000\n", MAXTC_SH); return 2; }
+                #define LF(N) sieve_flatN<N><<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf])
+                switch (kernel - 10) {
+                    case 1: LF(1); break; case 2: LF(2); break; case 3: LF(3); break;
+                    case 4: LF(4); break; case 5: LF(5); break; case 6: LF(6); break;
+                    case 8: LF(8); break; case 10: LF(10); break; case 12: LF(12); break;
+                    default: fprintf(stderr, "bad --kernel\n"); return 2;
+                }
+                #undef LF
             } else if (kernel == 4) {
                 sieve_ilpN<4><<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
             } else if (kernel == 5) {
@@ -771,6 +987,9 @@ int main(int argc, char **argv) {
                 sieve<<<blocks, 256, 0, stream[buf]>>>(d_R[buf], d_W[buf], P, d_cnt[buf], d_H[buf]);
             CK(cudaGetLastError());
             CK(cudaEventRecord(U.done, stream[buf]));
+            launch_s = lc_now_s() - t_wait - wait_s;
+            if (verify_mode) fprintf(stderr, "  timing K=%llu ksetup=%.3f prep=%.3f fin=%.3f up=%.3f wait=%.3f launch=%.3f\n",
+                (unsigned long long)K, ksetup_s, prep_s, fin_s, up_s, wait_s, launch_s);
             buf ^= 1;
         }
     }

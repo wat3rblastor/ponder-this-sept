@@ -11,6 +11,15 @@ what to do next. Keep it current; it outranks memory and chat history.
 
 ## 0. Hard deadline and method constraints (added 2026-10-02 17:27 CDT)
 
+- **DEADLINE (user, 2026-10-03 ~04:10 UTC, verbatim): "I need it 58 within 12 hours."** i.e. by
+  **2026-10-03 16:10 UTC**. Measured projection on the single GB10: E[58] ~ 0.44 in 12 h
+  (~35%), E[57] ~ 1.2. Throughput is the only lever left; units are independent, so extra GPUs
+  scale it linearly.
+- **AMENDED 2026-10-03 ~03:40 UTC (user, verbatim): "It'll be great if you find 57, but what I
+  really need is you to find 58."** The stop condition is a verified **n >= 58**. A 57 is a
+  waypoint: promote it, keep searching. Hardware is now a rented NVIDIA GB10 box (CUDA engine,
+  `experiments/2026-10-03-cuda`), which supersedes the "no rented hardware" note below.
+
 - **AMENDED 2026-10-02 ~21:45 CDT: the user's directive is now "keep going until you find 57".**
   The 12-hour deadline below is superseded as a stop condition; it remains the planning
   horizon for the current campaign phase. The stop condition is a verified n >= 57
