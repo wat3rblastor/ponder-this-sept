@@ -415,3 +415,19 @@ GPU busy/MHz/C are per-GPU means over the window.
     go to the same GPU, so a GPU pairs like with like. The ab_mps A/B showed no consistent
     gain from avoiding that.
   - Nothing measurable to gain from reordering or from changing --prep/--tq.
+- watchdog restarted 19:49 UTC (60 min, 10-min samples; ref-equiv/GPU = residues weighted by class cost ref 1 / 59|K 1.40 / other 1.25, per GPU-second; alarm below 90% of 1.33e11)
+- 20:00 UTC [10 min]: 8.785e+11 res/s, E58/h 0.383, E58/1e15res 0.121, mix ref/59|K/other 32/58/11%, ref-equiv/GPU 1.381e+11, units/s 69, engines 16, CPU 50.8 cores, throttled 0, GPU busy/MHz/C 0:100%/2155/87C 1:100%/2226/89C 2:100%/2220/84C 3:100%/2303/78C 4:100%/2208/88C 5:100%/2171/90C 6:100%/2206/89C 7:100%/2175/84C
+- 20:11 UTC [10 min]: 8.754e+11 res/s, E58/h 0.376, E58/1e15res 0.119, mix ref/59|K/other 32/56/12%, ref-equiv/GPU 1.373e+11, units/s 69, engines 16, CPU 51.2 cores, throttled 0, GPU busy/MHz/C 0:100%/2158/87C 1:100%/2222/89C 2:100%/2211/84C 3:100%/2303/78C 4:100%/2199/88C 5:100%/2166/90C 6:100%/2207/90C 7:100%/2181/85C
+- 20:21 UTC [10 min]: 8.670e+11 res/s, E58/h 0.372, E58/1e15res 0.119, mix ref/59|K/other 30/54/16%, ref-equiv/GPU 1.363e+11, units/s 63, engines 16, CPU 51.6 cores, throttled 0, GPU busy/MHz/C 0:100%/2147/87C 1:100%/2221/89C 2:100%/2207/85C 3:100%/2295/78C 4:100%/2197/88C 5:100%/2157/90C 6:100%/2198/90C 7:100%/2172/85C
+- 20:32 UTC [10 min]: 8.244e+11 res/s, E58/h 0.358, E58/1e15res 0.121, mix ref/59|K/other 27/48/25%, ref-equiv/GPU 1.292e+11, units/s 56, engines 16, CPU 53.0 cores, throttled 0, GPU busy/MHz/C 0:100%/2143/87C 1:100%/2220/89C 2:100%/2189/85C 3:100%/2286/79C 4:100%/2188/88C 5:100%/2158/90C 6:99%/2191/90C 7:100%/2171/85C
+- 20:43 UTC [10 min]: 8.547e+11 res/s, E58/h 0.368, E58/1e15res 0.120, mix ref/59|K/other 27/47/26%, ref-equiv/GPU 1.339e+11, units/s 57, engines 16, CPU 53.7 cores, throttled 0, GPU busy/MHz/C 0:100%/2151/87C 1:100%/2198/89C 2:100%/2198/85C 3:100%/2292/79C 4:100%/2183/88C 5:100%/2146/90C 6:100%/2184/90C 7:99%/2168/86C
+- 20:54 UTC (INVALID: the log tailer expired at 20:52:57, so the last 76 s are missing; the 600 s ending 20:52:57 gives 8.42e11 res/s, ref-equiv/GPU 1.40e11 with MOD >= 2.6e15 weighted 1.70) [10 min]: 7.520e+11 res/s, E58/h 0.320, E58/1e15res 0.118, mix ref/59|K/other 26/47/26%, ref-equiv/GPU 1.180e+11, units/s 49, engines 16, CPU 54.2 cores, throttled 0, GPU busy/MHz/C 0:100%/2143/87C 1:100%/2209/89C 2:100%/2187/85C 3:100%/2281/79C 4:100%/2188/88C 5:100%/2163/90C 6:100%/2178/90C 7:100%/2154/86C
+- Trend 19:50-20:53: no real alarm. The 20:54 ALERT was the expired tailer, not the engines.
+  - With MOD >= 2.6e15 units weighted at their production cost of 1.70 (the watch line's
+    'other' column lumps them at 1.25), the cost-normalised rate is steady at 1.36-1.41e11 per
+    GPU. Raw res/s fell from 8.79e11 to 8.2-8.5e11 because big-MOD units rose from ~0% to ~15%
+    of residues (59|K 47%, ref 27%).
+  - E58/h went 0.383 -> 0.376 -> 0.372 -> 0.358 -> 0.368 -> ~0.36. E58 per 1e15 res held at
+    0.118-0.121, in line with the planner's 0.357/h average for hours 2-3.
+  - 16 engines throughout; GPUs 99-100% at 550 W; 0 throttled periods; CPU 51-54 cores;
+    clocks drifting down ~10 MHz per hour (2143-2315 MHz); temperatures 78-90 C, flat.

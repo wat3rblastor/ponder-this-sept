@@ -4,7 +4,7 @@ cd /workspace/ponder-this-sept/experiments/remote
 snap(){ for i in $(seq 0 15); do python3 -c "
 import json,sys
 s=0;n=0
-for l in open('v2_s$i.jsonl'):
+for l in open('v3_s$i.jsonl'):
   try: s+=json.loads(l)['res'];n+=1
   except: pass
 print($i,s,n)"; done; }
