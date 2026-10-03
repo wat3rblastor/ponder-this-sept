@@ -17,6 +17,13 @@ PPG=${PPG:-3}
 set -- $GPUS; NG=$#; N=$(( NG * PPG ))
 NCPU=$(nproc); TH=${TH:-$(( NCPU / N ))}; [ "$TH" -lt 2 ] && TH=2
 E=experiments/remote; mkdir -p $E
+# MPS=1 (default): engines on one GPU share it through the CUDA MPS server instead
+# of time-slicing (measured ~+15% per GPU). The daemon is started once and reused.
+if [ "${MPS:-1}" = 1 ]; then
+  export CUDA_MPS_PIPE_DIRECTORY=$PWD/build/mps/pipe CUDA_MPS_LOG_DIRECTORY=$PWD/build/mps/log
+  mkdir -p "$CUDA_MPS_PIPE_DIRECTORY" "$CUDA_MPS_LOG_DIRECTORY"
+  pgrep -x nvidia-cuda-mps >/dev/null || nvidia-cuda-mps-control -d
+fi
 j=0
 for g in $GPUS; do
   for p in $(seq 1 $PPG); do
