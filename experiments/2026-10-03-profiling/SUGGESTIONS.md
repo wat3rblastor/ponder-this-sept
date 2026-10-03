@@ -395,3 +395,23 @@ Clocks 2164-2309 MHz (about +15 MHz versus cycle 5), temperatures 78-90 C. Stabl
 Each line covers the preceding window. Sources are `watch/units_ts.txt` (timestamped engine
 log lines) and `watch/samples.txt` (5 s samples); the line is produced by `watch/watch.py`.
 GPU busy/MHz/C are per-GPU means over the window.
+- 19:15 UTC [9 min]: 8.809e+11 res/s, E58/h 0.419, E58/1e15res 0.132, mix ref/59|K/other 33/59/8%, units/s 69, engines 16, CPU 50.2 cores, throttled 0, GPU busy/MHz/C 0:100%/2162/87C 1:100%/2226/88C 2:100%/2218/84C 3:100%/2306/77C 4:100%/2201/88C 5:100%/2170/90C 6:100%/2214/89C 7:100%/2179/84C
+- 19:26 UTC [10 min]: 8.792e+11 res/s, E58/h 0.409, E58/1e15res 0.129, mix ref/59|K/other 32/57/11%, units/s 70, engines 16, CPU 50.6 cores, throttled 0, GPU busy/MHz/C 0:100%/2164/87C 1:100%/2226/89C 2:100%/2213/84C 3:100%/2305/78C 4:100%/2195/88C 5:100%/2163/90C 6:100%/2207/90C 7:100%/2181/84C
+- 19:37 UTC [10 min]: 8.818e+11 res/s, E58/h 0.401, E58/1e15res 0.126, mix ref/59|K/other 33/56/11%, units/s 72, engines 16, CPU 50.7 cores, throttled 0, GPU busy/MHz/C 0:100%/2159/87C 1:100%/2221/88C 2:100%/2213/84C 3:100%/2302/78C 4:100%/2210/88C 5:100%/2173/90C 6:100%/2203/89C 7:100%/2177/85C
+- 19:48 UTC [10 min]: 8.778e+11 res/s, E58/h 0.391, E58/1e15res 0.124, mix ref/59|K/other 32/57/11%, units/s 69, engines 16, CPU 50.8 cores, throttled 0, GPU busy/MHz/C 0:100%/2154/87C 1:100%/2233/89C 2:100%/2222/84C 3:100%/2299/77C 4:100%/2204/88C 5:100%/2169/90C 6:100%/2210/89C 7:100%/2184/84C
+- Trend 19:05-19:48: res/s flat at 8.78-8.82e11. E58/h fell 0.419 -> 0.409 -> 0.401 -> 0.391.
+  The fall is entirely the plan descending: E58 per 1e15 res went 0.132 -> 0.124 with a
+  constant mix of about 32/57/11.
+  - The planner predicted this for the cost-ranked plan: 0.427 E58 in hour 1, and an average of
+    0.357/h over hours 2-3. So 0.39 at ~1.4 h is on track, not a fault.
+  - No engine deaths, no GPU below 100% busy, no throttling. CPU 50-51 cores; clocks and
+    temperatures flat.
+- Observations on ordering / --prep / --tq (19:05-19:15, all 16 engines):
+  - Stage-3 worker busy 23-27% of wall time per engine, so the --tq queue never fills.
+  - Prep pool uses 0.04-0.05 thread-seconds per second of its 8 threads, so --prep 8 is far
+    more than needed but costs nothing.
+  - kern/wall is 1.00 on every engine.
+  - The two engines on each GPU finish near-identical unit counts: consecutive plan entries
+    go to the same GPU, so a GPU pairs like with like. The ab_mps A/B showed no consistent
+    gain from avoiding that.
+  - Nothing measurable to gain from reordering or from changing --prep/--tq.
