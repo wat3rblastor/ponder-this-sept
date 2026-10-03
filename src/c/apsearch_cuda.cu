@@ -574,6 +574,7 @@ int main(int argc, char **argv) {
     u64 modcap = 2000000000000000ULL;
     int report = 44;
     const char *out = NULL, *units_file = NULL;
+    u64 slice_i = 0, slice_n = 1;    /* --slice i n: take plan entries with index % n == i */
     bool verify_mode = false, resume = false, hist_mode = false;
     int nomp = 0, kernel = 20;       /* strided groups; see the kernel comments for the measured ladder */
     u64 shbytes = 65536;
@@ -596,6 +597,7 @@ int main(int argc, char **argv) {
         else if (!strcmp(k, "--threads")) nomp = atoi(NEXT());
         else if (!strcmp(k, "--kernel")) kernel = atoi(NEXT());
         else if (!strcmp(k, "--units")) units_file = NEXT();
+        else if (!strcmp(k, "--slice")) { slice_i = strtoull(NEXT(), NULL, 10); slice_n = strtoull(NEXT(), NULL, 10); if (!slice_n || slice_i >= slice_n) { fprintf(stderr, "bad --slice\n"); return 2; } }
         else if (!strcmp(k, "--nch")) nch = atoi(NEXT());
         else if (!strcmp(k, "--unr")) unr = atoi(NEXT());
         else if (!strcmp(k, "--shbytes")) shbytes = strtoull(NEXT(), NULL, 10);
@@ -800,6 +802,7 @@ int main(int argc, char **argv) {
     bool first_unit = true;
     int buf = 0;
     for (size_t ui = 0; ui < ulist.size() && !stop_requested; ui++) {
+        if (ui % slice_n != slice_i) continue;
         const u64 K = ulist[ui].first;
         shift0 = ulist[ui].second; shifts = 1;
         if (!done_units.empty() && done_units.count(unit_key(K, shift0))) continue;
