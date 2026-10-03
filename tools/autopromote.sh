@@ -33,6 +33,7 @@ Found by the running campaign and promoted automatically by
 tools/autopromote.sh, which records nothing that fails either src/verify.py or
 the constructive cross-check in src/crosscheck.py." >> "$LOG" 2>&1
       echo "$(date '+%F %T') committed n=$n" >> "$LOG"
+      git push -q origin HEAD >> "$LOG" 2>&1 && echo "$(date '+%F %T') pushed n=$n" >> "$LOG"
     else
       echo "$(date '+%F %T') promote REFUSED n=$n -- left alone" >> "$LOG"
     fi

@@ -4,3 +4,5 @@ __pycache__/
 *.pyc
 results/*.bin
 experiments/**/raw/
+experiments/remote_plan.txt
+experiments/remote/*.log
