@@ -6,3 +6,4 @@ results/*.bin
 experiments/**/raw/
 experiments/remote_plan.txt
 experiments/remote/*.log
+experiments/remote_plan_*.txt
