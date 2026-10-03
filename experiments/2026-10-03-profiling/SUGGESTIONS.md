@@ -241,3 +241,85 @@ downside are about the same size, so the decision rests on the cost measurement.
 2. Before any launch on a regenerated plan, drop the units finished since generation:
    `python3 -c "import json,glob;d={(j['K'],j['shift']) for f in glob.glob('experiments/*/*.jsonl') for l in open(f) if '\"covered\"' in l for j in [json.loads(l)]};L=[l for l in open('experiments/remote_plan_cost.txt') if tuple(map(int,l.split())) not in d];open('experiments/remote_plan_cost.txt','w').writelines(L);print(len(L))"`
 3. Power limit 600 W (host side), unchanged from cycle 2.
+
+## Cycle 5 — 2026-10-03 18:26–18:39 UTC (v3: cost-ranked plan, 16 engines, OMPT=8)
+
+Raw data: `cycle5/` (units_ts.txt = v3 log lines with timestamps, sys_ts.txt, score.py,
+epw.py, variants.sh, variants_sum.py, variant_units.txt).
+
+### 1. Validating the switch: the gain is there, and larger than the planner predicted
+Method: each logged unit gets its planner score E(K, shift) from tools/plan_units.py
+(unit_shape, size_term, WCAL calibration). Units are summed over a wall-clock window taken from
+the timestamped log tailers, skipping the first 60 s.
+
+| run | window | units | res/s | E58 per wall-hour | E58 per 1e15 res |
+|---|---|---|---|---|---|
+| v2 (residue-ranked), 17:59-18:14 | 839 s | 25,494 | 7.09e11 | 0.400 | 0.157 |
+| v2, 18:09-18:24 | 836 s | 25,004 | 7.08e11 | 0.392 | 0.154 |
+| **v3 (cost-ranked), 18:27-18:37** | 614 s | 121,640 | **9.55e11** | **0.472** | 0.137 |
+
+- **E58 per wall-hour: +18% to +21%. Aggregate res/s: +35%.** Yield per residue fell 11%, as
+  the planner intended.
+- The planner simulation predicted +8% E58/h at 1 h. Production does better, because the
+  solo cost table under-predicts the gap.
+  - The solo table (ref 1.0, 2.5171e15 at 1/0.76, MOD >= 2.6e15 at 1/0.62, others ~1/0.8)
+    gives a v2 mean cost of ~1.25, i.e. 8.3e11 res/s at the solo reference rate of
+    1.3e11 per GPU. v2 measured 7.08e11, 85% of that.
+  - For v3 (46% reference, 54% 2.5171e15 residues) the same table gives ~8.9e11; v3 measured
+    9.55e11, 107% of that.
+  - So under MPS the large-MOD units ran worse than solo, and/or the small units ran better.
+    That is consistent with two 85M-thread grids from two engines competing for L1/L2.
+- Host side: 198 units/s (was ~30). CPU 60.4 cores (was 51), **0 of 6768 periods throttled**.
+
+### Drift
+676 s span: all GPUs at 100% util and 550 W. Clocks 2149-2292 MHz (about 25 MHz lower than
+cycle 4), temperatures 78-90 C. This is stable heat soak; nothing changed.
+
+### 2. Why the non-reference classes cost more per residue (from kernels_cmp.cuh kernel 31)
+- **Work per thread.** Each thread walks c1 x c2 residues: the two largest pinned components,
+  count q - 58 each, in groups of NCH = 7 adjacent words. Phase 1 runs T0 = 24 fully unrolled
+  tier-C rows per group, with a per-word load guard from row 8. Surviving words are then
+  compacted per warp, and the tail runs rows 24..607 one word per lane.
+- **Reference class** (pins up to 113; inner pair 107, 113; 2695 residues per thread):
+  tier-C starts at **131, 137, 149, ...**
+- **2.5171e15 class = K divisible by 59.** 59 divides d, so it cannot be pinned (it is useless
+  there), and 131 is pinned instead (MOD ratio 2.2203 = 131/59). Inner pair 113, 131;
+  4015 residues per thread. Tier-C starts at **137**: the strongest row, 131 (kills ~44% of
+  the bits), is gone. Each additional pin of this kind (MOD >= 2.6e15 classes: 131 and 137
+  pinned) removes the next-strongest row.
+- **Consequence.** After the 24 phase-1 rows, a larger fraction of words is still alive
+  (about 1.8x more bits per removed strong row; model estimate). Fewer lanes go dead and skip
+  their loads, so phase 1 does more loads. More words also reach the compacted tail, where each
+  costs about one L2 load per row.
+- Per residue the GPU therefore does more rows of work. This is the price of residues that
+  pinning has already pre-filtered. It is not a bug, and cost-aware planning is the right
+  response to it.
+- **Padding (exact, minor).** c2 = 73 (q = 131) with NCH = 7 means 11 groups of 7 = 77 slots:
+  94.8% useful, against 98.2% for the reference (c2 = 55, 56 slots). NCH = 5 would make it
+  97.3%.
+  - Residue-weighted over the v3 plan: NCH 5/6/7/8 give 0.986/0.927/0.964/0.945. Even a perfect
+    per-unit NCH choice gains at most **+2.3% from padding alone**, below the 3% bar. It only
+    matters if NCH = 5 is not slower for other reasons.
+
+### 3. Kernel parameter sweep (needs a GPU without production engines; ready to run)
+`experiments/2026-10-03-profiling/cycle5/variants.sh 7` runs kernel 31 solo with KBENCH on 7
+units:
+- reference K=11597, 513, 39519
+- 2.5171e15 class K=135936, 17228 (3.4e11 residues each, ~3.2 s)
+- 2.0917e15 class K=93152
+
+It sweeps (nch, t0) over 7/24 (twice, as a drift check), 7/20, 7/28, 7/32, 7/36, 8/24,
+8/28, 6/24, 6/28, 5/24. That is about 11 x ~9 s, roughly 2 minutes of GPU 7. It prints each
+unit's time relative to 7/24 and checks that surv/bits/conf are identical across configs.
+- If the 2.5171e15 units improve by >= 5% with a different (nch, t0) while the reference
+  units do not get slower, the cheap change is a per-unit (nch, t0) choice by inner pair.
+  That needs a small code change in prepare()/launch (pad = nch - 1 is set per unit in
+  prepare). I will draft it as a patch once the numbers exist.
+- If nothing beats 7/24 by >= 3% on that class, the kernel is done for this host.
+
+### Ranked suggestions
+1. Keep v3 (measured +18-21% E58/h, +35% res/s).
+2. Run `cycle5/variants.sh 7` at the next convenient pause of GPU 7 (~2 min) and send me
+   `cycle5/variants_out.txt`. Expected gain: unknown, at most a few percent; padding alone
+   bounds the NCH part at +2.3%.
+3. Power limit 600 W (host side), unchanged.

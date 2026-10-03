@@ -1,0 +1,165 @@
+=== nch=7 t0=24
+ksolo K=11597 sh=5 res=4.67e+09 ntc=608 0.0309s 1.514e+11 res/s
+ksolo K=135936 sh=0 res=3.409e+11 ntc=608 3.1763s 1.073e+11 res/s
+K=11597 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=473 bits=473 conf=469 best=23 gpu=3.24s cpu=0.01s
+ksolo K=513 sh=5 res=4.67e+09 ntc=608 0.0357s 1.308e+11 res/s
+ksolo K=93152 sh=2 res=2.622e+10 ntc=608 0.2474s 1.060e+11 res/s
+ksolo K=39519 sh=2 res=4.67e+09 ntc=608 0.0360s 1.299e+11 res/s
+K=135936 sh=0 MOD=2517112306980510 thr=84912100 res=3.409e+11 tierC=608 surv=60586 bits=60586 conf=59178 best=31 gpu=3.21s cpu=1.17s
+K=513 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=530 bits=530 conf=488 best=31 gpu=0.29s cpu=0.01s
+K=93152 sh=2 MOD=2091684874814790 thr=6531700 res=2.622e+10 tierC=608 surv=4499 bits=4499 conf=4407 best=31 gpu=0.29s cpu=0.09s
+ksolo K=17228 sh=5 res=3.409e+11 ntc=608 3.2738s 1.041e+11 res/s
+K=39519 sh=2 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=445 bits=445 conf=442 best=31 gpu=3.34s cpu=0.01s
+ksolo K=11597 sh=5 res=4.67e+09 ntc=608 0.0364s 1.283e+11 res/s
+K=17228 sh=5 MOD=2517112306980510 thr=84912100 res=3.409e+11 tierC=608 surv=67010 bits=67010 conf=60747 best=42 gpu=3.31s cpu=1.40s
+K=11597 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=473 bits=473 conf=469 best=42 gpu=0.04s cpu=0.01s
+=== nch=7 t0=20
+ksolo K=11597 sh=5 res=4.67e+09 ntc=608 0.0343s 1.362e+11 res/s
+ksolo K=135936 sh=0 res=3.409e+11 ntc=608 3.7077s 9.195e+10 res/s
+K=11597 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=473 bits=473 conf=469 best=23 gpu=3.77s cpu=0.02s
+ksolo K=513 sh=5 res=4.67e+09 ntc=608 0.0393s 1.187e+11 res/s
+ksolo K=93152 sh=2 res=2.622e+10 ntc=608 0.2860s 9.168e+10 res/s
+ksolo K=39519 sh=2 res=4.67e+09 ntc=608 0.0395s 1.184e+11 res/s
+K=135936 sh=0 MOD=2517112306980510 thr=84912100 res=3.409e+11 tierC=608 surv=60586 bits=60586 conf=59178 best=31 gpu=3.75s cpu=1.18s
+K=513 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=530 bits=530 conf=488 best=31 gpu=0.33s cpu=0.01s
+K=93152 sh=2 MOD=2091684874814790 thr=6531700 res=2.622e+10 tierC=608 surv=4499 bits=4499 conf=4407 best=31 gpu=0.33s cpu=0.09s
+ksolo K=17228 sh=5 res=3.409e+11 ntc=608 3.7615s 9.064e+10 res/s
+K=39519 sh=2 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=445 bits=445 conf=442 best=31 gpu=3.83s cpu=0.01s
+ksolo K=11597 sh=5 res=4.67e+09 ntc=608 0.0396s 1.181e+11 res/s
+K=17228 sh=5 MOD=2517112306980510 thr=84912100 res=3.409e+11 tierC=608 surv=67010 bits=67010 conf=60747 best=42 gpu=3.80s cpu=1.39s
+K=11597 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=473 bits=473 conf=469 best=42 gpu=0.04s cpu=0.01s
+=== nch=7 t0=28
+ksolo K=11597 sh=5 res=4.67e+09 ntc=608 0.0309s 1.512e+11 res/s
+ksolo K=135936 sh=0 res=3.409e+11 ntc=608 3.0429s 1.120e+11 res/s
+K=11597 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=473 bits=473 conf=469 best=23 gpu=3.11s cpu=0.01s
+ksolo K=513 sh=5 res=4.67e+09 ntc=608 0.0356s 1.311e+11 res/s
+ksolo K=93152 sh=2 res=2.622e+10 ntc=608 0.2385s 1.100e+11 res/s
+ksolo K=39519 sh=2 res=4.67e+09 ntc=608 0.0358s 1.306e+11 res/s
+K=135936 sh=0 MOD=2517112306980510 thr=84912100 res=3.409e+11 tierC=608 surv=60586 bits=60586 conf=59178 best=31 gpu=3.08s cpu=1.18s
+K=513 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=530 bits=530 conf=488 best=31 gpu=0.28s cpu=0.01s
+K=93152 sh=2 MOD=2091684874814790 thr=6531700 res=2.622e+10 tierC=608 surv=4499 bits=4499 conf=4407 best=31 gpu=0.28s cpu=0.09s
+ksolo K=17228 sh=5 res=3.409e+11 ntc=608 3.1588s 1.079e+11 res/s
+K=39519 sh=2 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=445 bits=445 conf=442 best=31 gpu=3.23s cpu=0.01s
+ksolo K=11597 sh=5 res=4.67e+09 ntc=608 0.0363s 1.287e+11 res/s
+K=17228 sh=5 MOD=2517112306980510 thr=84912100 res=3.409e+11 tierC=608 surv=67010 bits=67010 conf=60747 best=42 gpu=3.20s cpu=1.40s
+K=11597 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=473 bits=473 conf=469 best=42 gpu=0.04s cpu=0.01s
+=== nch=7 t0=32
+ksolo K=11597 sh=5 res=4.67e+09 ntc=608 0.0320s 1.461e+11 res/s
+ksolo K=135936 sh=0 res=3.409e+11 ntc=608 3.0769s 1.108e+11 res/s
+K=11597 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=473 bits=473 conf=469 best=23 gpu=3.14s cpu=0.02s
+ksolo K=513 sh=5 res=4.67e+09 ntc=608 0.0365s 1.278e+11 res/s
+ksolo K=93152 sh=2 res=2.622e+10 ntc=608 0.2402s 1.092e+11 res/s
+ksolo K=39519 sh=2 res=4.67e+09 ntc=608 0.0370s 1.263e+11 res/s
+K=135936 sh=0 MOD=2517112306980510 thr=84912100 res=3.409e+11 tierC=608 surv=60586 bits=60586 conf=59178 best=31 gpu=3.12s cpu=1.16s
+K=513 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=530 bits=530 conf=488 best=31 gpu=0.28s cpu=0.01s
+K=93152 sh=2 MOD=2091684874814790 thr=6531700 res=2.622e+10 tierC=608 surv=4499 bits=4499 conf=4407 best=31 gpu=0.28s cpu=0.09s
+ksolo K=17228 sh=5 res=3.409e+11 ntc=608 3.2010s 1.065e+11 res/s
+K=39519 sh=2 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=445 bits=445 conf=442 best=31 gpu=3.27s cpu=0.01s
+ksolo K=11597 sh=5 res=4.67e+09 ntc=608 0.0373s 1.252e+11 res/s
+K=17228 sh=5 MOD=2517112306980510 thr=84912100 res=3.409e+11 tierC=608 surv=67010 bits=67010 conf=60747 best=42 gpu=3.24s cpu=1.43s
+K=11597 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=473 bits=473 conf=469 best=42 gpu=0.04s cpu=0.01s
+=== nch=7 t0=36
+ksolo K=11597 sh=5 res=4.67e+09 ntc=608 0.0335s 1.395e+11 res/s
+ksolo K=135936 sh=0 res=3.409e+11 ntc=608 3.1771s 1.073e+11 res/s
+K=11597 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=473 bits=473 conf=469 best=23 gpu=3.24s cpu=0.02s
+ksolo K=513 sh=5 res=4.67e+09 ntc=608 0.0384s 1.215e+11 res/s
+ksolo K=93152 sh=2 res=2.622e+10 ntc=608 0.2481s 1.057e+11 res/s
+ksolo K=39519 sh=2 res=4.67e+09 ntc=608 0.0386s 1.211e+11 res/s
+K=135936 sh=0 MOD=2517112306980510 thr=84912100 res=3.409e+11 tierC=608 surv=60586 bits=60586 conf=59178 best=31 gpu=3.22s cpu=1.19s
+K=513 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=530 bits=530 conf=488 best=31 gpu=0.29s cpu=0.01s
+K=93152 sh=2 MOD=2091684874814790 thr=6531700 res=2.622e+10 tierC=608 surv=4499 bits=4499 conf=4407 best=31 gpu=0.29s cpu=0.09s
+ksolo K=17228 sh=5 res=3.409e+11 ntc=608 3.2951s 1.035e+11 res/s
+K=39519 sh=2 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=445 bits=445 conf=442 best=31 gpu=3.36s cpu=0.01s
+ksolo K=11597 sh=5 res=4.67e+09 ntc=608 0.0391s 1.196e+11 res/s
+K=17228 sh=5 MOD=2517112306980510 thr=84912100 res=3.409e+11 tierC=608 surv=67010 bits=67010 conf=60747 best=42 gpu=3.34s cpu=1.39s
+K=11597 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=473 bits=473 conf=469 best=42 gpu=0.04s cpu=0.01s
+=== nch=8 t0=24
+ksolo K=11597 sh=5 res=4.67e+09 ntc=608 0.0306s 1.526e+11 res/s
+ksolo K=135936 sh=0 res=3.409e+11 ntc=608 3.1721s 1.075e+11 res/s
+K=11597 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=473 bits=473 conf=469 best=23 gpu=3.23s cpu=0.02s
+ksolo K=513 sh=5 res=4.67e+09 ntc=608 0.0352s 1.327e+11 res/s
+ksolo K=93152 sh=2 res=2.622e+10 ntc=608 0.2483s 1.056e+11 res/s
+ksolo K=39519 sh=2 res=4.67e+09 ntc=608 0.0352s 1.325e+11 res/s
+K=135936 sh=0 MOD=2517112306980510 thr=84912100 res=3.409e+11 tierC=608 surv=60586 bits=60586 conf=59178 best=31 gpu=3.21s cpu=1.17s
+K=513 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=530 bits=530 conf=488 best=31 gpu=0.29s cpu=0.01s
+K=93152 sh=2 MOD=2091684874814790 thr=6531700 res=2.622e+10 tierC=608 surv=4499 bits=4499 conf=4407 best=31 gpu=0.29s cpu=0.09s
+ksolo K=17228 sh=5 res=3.409e+11 ntc=608 3.2852s 1.038e+11 res/s
+K=39519 sh=2 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=445 bits=445 conf=442 best=31 gpu=3.35s cpu=0.01s
+ksolo K=11597 sh=5 res=4.67e+09 ntc=608 0.0357s 1.307e+11 res/s
+K=17228 sh=5 MOD=2517112306980510 thr=84912100 res=3.409e+11 tierC=608 surv=67010 bits=67010 conf=60747 best=42 gpu=3.32s cpu=1.40s
+K=11597 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=473 bits=473 conf=469 best=42 gpu=0.04s cpu=0.01s
+=== nch=8 t0=28
+ksolo K=11597 sh=5 res=4.67e+09 ntc=608 0.0306s 1.527e+11 res/s
+ksolo K=135936 sh=0 res=3.409e+11 ntc=608 3.0431s 1.120e+11 res/s
+K=11597 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=473 bits=473 conf=469 best=23 gpu=3.11s cpu=0.02s
+ksolo K=513 sh=5 res=4.67e+09 ntc=608 0.0348s 1.343e+11 res/s
+ksolo K=93152 sh=2 res=2.622e+10 ntc=608 0.2382s 1.101e+11 res/s
+ksolo K=39519 sh=2 res=4.67e+09 ntc=608 0.0351s 1.329e+11 res/s
+K=135936 sh=0 MOD=2517112306980510 thr=84912100 res=3.409e+11 tierC=608 surv=60586 bits=60586 conf=59178 best=31 gpu=3.08s cpu=1.15s
+K=513 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=530 bits=530 conf=488 best=31 gpu=0.28s cpu=0.01s
+K=93152 sh=2 MOD=2091684874814790 thr=6531700 res=2.622e+10 tierC=608 surv=4499 bits=4499 conf=4407 best=31 gpu=0.28s cpu=0.09s
+ksolo K=17228 sh=5 res=3.409e+11 ntc=608 3.1759s 1.073e+11 res/s
+K=39519 sh=2 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=445 bits=445 conf=442 best=31 gpu=3.24s cpu=0.01s
+ksolo K=11597 sh=5 res=4.67e+09 ntc=608 0.0357s 1.309e+11 res/s
+K=17228 sh=5 MOD=2517112306980510 thr=84912100 res=3.409e+11 tierC=608 surv=67010 bits=67010 conf=60747 best=42 gpu=3.21s cpu=1.42s
+K=11597 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=473 bits=473 conf=469 best=42 gpu=0.04s cpu=0.01s
+=== nch=6 t0=24
+ksolo K=11597 sh=5 res=4.67e+09 ntc=608 0.0323s 1.448e+11 res/s
+ksolo K=135936 sh=0 res=3.409e+11 ntc=608 3.2266s 1.057e+11 res/s
+K=11597 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=473 bits=473 conf=469 best=23 gpu=3.29s cpu=0.02s
+ksolo K=513 sh=5 res=4.67e+09 ntc=608 0.0376s 1.242e+11 res/s
+ksolo K=93152 sh=2 res=2.622e+10 ntc=608 0.2511s 1.044e+11 res/s
+ksolo K=39519 sh=2 res=4.67e+09 ntc=608 0.0376s 1.242e+11 res/s
+K=135936 sh=0 MOD=2517112306980510 thr=84912100 res=3.409e+11 tierC=608 surv=60586 bits=60586 conf=59178 best=31 gpu=3.27s cpu=1.18s
+K=513 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=530 bits=530 conf=488 best=31 gpu=0.29s cpu=0.01s
+K=93152 sh=2 MOD=2091684874814790 thr=6531700 res=2.622e+10 tierC=608 surv=4499 bits=4499 conf=4407 best=31 gpu=0.29s cpu=0.09s
+ksolo K=17228 sh=5 res=3.409e+11 ntc=608 3.3258s 1.025e+11 res/s
+K=39519 sh=2 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=445 bits=445 conf=442 best=31 gpu=3.39s cpu=0.01s
+ksolo K=11597 sh=5 res=4.67e+09 ntc=608 0.0381s 1.226e+11 res/s
+K=17228 sh=5 MOD=2517112306980510 thr=84912100 res=3.409e+11 tierC=608 surv=67010 bits=67010 conf=60747 best=42 gpu=3.37s cpu=1.40s
+K=11597 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=473 bits=473 conf=469 best=42 gpu=0.04s cpu=0.01s
+=== nch=6 t0=28
+ksolo K=11597 sh=5 res=4.67e+09 ntc=608 0.0327s 1.428e+11 res/s
+ksolo K=135936 sh=0 res=3.409e+11 ntc=608 3.1221s 1.092e+11 res/s
+K=11597 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=473 bits=473 conf=469 best=23 gpu=3.18s cpu=0.02s
+ksolo K=513 sh=5 res=4.67e+09 ntc=608 0.0380s 1.228e+11 res/s
+ksolo K=93152 sh=2 res=2.622e+10 ntc=608 0.2442s 1.074e+11 res/s
+ksolo K=39519 sh=2 res=4.67e+09 ntc=608 0.0380s 1.228e+11 res/s
+K=135936 sh=0 MOD=2517112306980510 thr=84912100 res=3.409e+11 tierC=608 surv=60586 bits=60586 conf=59178 best=31 gpu=3.16s cpu=1.17s
+K=513 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=530 bits=530 conf=488 best=31 gpu=0.29s cpu=0.01s
+K=93152 sh=2 MOD=2091684874814790 thr=6531700 res=2.622e+10 tierC=608 surv=4499 bits=4499 conf=4407 best=31 gpu=0.28s cpu=0.09s
+ksolo K=17228 sh=5 res=3.409e+11 ntc=608 3.2410s 1.052e+11 res/s
+K=39519 sh=2 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=445 bits=445 conf=442 best=31 gpu=3.31s cpu=0.01s
+ksolo K=11597 sh=5 res=4.67e+09 ntc=608 0.0386s 1.209e+11 res/s
+K=17228 sh=5 MOD=2517112306980510 thr=84912100 res=3.409e+11 tierC=608 surv=67010 bits=67010 conf=60747 best=42 gpu=3.28s cpu=1.40s
+K=11597 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=473 bits=473 conf=469 best=42 gpu=0.04s cpu=0.01s
+=== nch=5 t0=24
+ksolo K=11597 sh=5 res=4.67e+09 ntc=608 0.0316s 1.480e+11 res/s
+ksolo K=135936 sh=0 res=3.409e+11 ntc=608 3.2507s 1.049e+11 res/s
+K=11597 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=473 bits=473 conf=469 best=23 gpu=3.31s cpu=0.02s
+ksolo K=513 sh=5 res=4.67e+09 ntc=608 0.0372s 1.255e+11 res/s
+ksolo K=93152 sh=2 res=2.622e+10 ntc=608 0.2532s 1.036e+11 res/s
+ksolo K=39519 sh=2 res=4.67e+09 ntc=608 0.0373s 1.253e+11 res/s
+K=135936 sh=0 MOD=2517112306980510 thr=84912100 res=3.409e+11 tierC=608 surv=60586 bits=60586 conf=59178 best=31 gpu=3.29s cpu=1.20s
+K=513 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=530 bits=530 conf=488 best=31 gpu=0.30s cpu=0.01s
+K=93152 sh=2 MOD=2091684874814790 thr=6531700 res=2.622e+10 tierC=608 surv=4499 bits=4499 conf=4407 best=31 gpu=0.29s cpu=0.09s
+ksolo K=17228 sh=5 res=3.409e+11 ntc=608 3.3431s 1.020e+11 res/s
+K=39519 sh=2 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=445 bits=445 conf=442 best=31 gpu=3.41s cpu=0.01s
+ksolo K=11597 sh=5 res=4.67e+09 ntc=608 0.0374s 1.247e+11 res/s
+K=17228 sh=5 MOD=2517112306980510 thr=84912100 res=3.409e+11 tierC=608 surv=67010 bits=67010 conf=60747 best=42 gpu=3.38s cpu=1.43s
+K=11597 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=473 bits=473 conf=469 best=42 gpu=0.04s cpu=0.01s
+=== nch=7 t0=24
+ksolo K=11597 sh=5 res=4.67e+09 ntc=608 0.0307s 1.523e+11 res/s
+ksolo K=135936 sh=0 res=3.409e+11 ntc=608 3.1372s 1.087e+11 res/s
+K=11597 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=473 bits=473 conf=469 best=23 gpu=3.20s cpu=0.02s
+ksolo K=513 sh=5 res=4.67e+09 ntc=608 0.0355s 1.316e+11 res/s
+ksolo K=93152 sh=2 res=2.622e+10 ntc=608 0.2448s 1.071e+11 res/s
+ksolo K=39519 sh=2 res=4.67e+09 ntc=608 0.0355s 1.314e+11 res/s
+K=135936 sh=0 MOD=2517112306980510 thr=84912100 res=3.409e+11 tierC=608 surv=60586 bits=60586 conf=59178 best=31 gpu=3.17s cpu=1.18s
+K=513 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=530 bits=530 conf=488 best=31 gpu=0.28s cpu=0.01s
+K=93152 sh=2 MOD=2091684874814790 thr=6531700 res=2.622e+10 tierC=608 surv=4499 bits=4499 conf=4407 best=31 gpu=0.28s cpu=0.09s
+ksolo K=17228 sh=5 res=3.409e+11 ntc=608 3.2366s 1.053e+11 res/s
+K=39519 sh=2 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=445 bits=445 conf=442 best=31 gpu=3.30s cpu=0.01s
+ksolo K=11597 sh=5 res=4.67e+09 ntc=608 0.0360s 1.299e+11 res/s
+K=17228 sh=5 MOD=2517112306980510 thr=84912100 res=3.409e+11 tierC=608 surv=67010 bits=67010 conf=60747 best=42 gpu=3.27s cpu=1.39s
+K=11597 sh=5 MOD=1133661268029390 thr=1732900 res=4.67e+09 tierC=608 surv=473 bits=473 conf=469 best=42 gpu=0.04s cpu=0.01s

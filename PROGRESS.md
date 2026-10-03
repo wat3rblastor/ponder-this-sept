@@ -762,3 +762,19 @@ of the previous entry ("do not cap OpenMP threads").
   finished ones removed). Tag `v2` covered ~2e15 residues of the residue-ranked plan first.
 - Profiler: CPU 51 of 245.76 quota cores, no throttling; GPUs 100% busy at the 550 W cap
   (600 W is the card maximum; the cap is host-side and cannot be changed from the container).
+
+### 18:27–18:50 UTC — record n = 56; v3 validated; kernel 31 retuned to --nch 8 --t0 28
+
+- **n = 56** at `a = 240533583825657151`, `d = 13967981807653500` (K = 36550, primitive, 59 does
+  not divide d), verified by both checkers and promoted automatically (commit 7c34ae2).
+  ANSWER.md §5 now also lists rescaled copies of 55+ runs in a separate table (user request).
+- Cost-ranked plan v3, measured by the profiler on production windows: 9.55e11 res/s (v2:
+  7.08e11) and 0.472 planner-expected 58s per wall-hour (v2: 0.39-0.40), i.e. +18-21%. Large-MOD
+  units do worse under MPS than solo (two 85M-thread grids on one GPU), which is why the gain
+  exceeds the simulated +8%.
+- Why non-reference classes cost more: for 59 | K the prime 59 cannot be pinned, 131 is pinned
+  instead, so the strongest sieve row (131) is gone and more words survive the first 24 rows.
+- Solo sweep of kernel 31 parameters on GPU 7 (`experiments/2026-10-03-profiling/cycle5/`),
+  time relative to (nch 7, t0 24), identical results in every setting: (8, 28) is 0.98-1.00 on
+  the reference class and 0.97-0.98 on the 59 | K classes; (7, 20) is 11-18% slower; (7, 36)
+  8-9% slower on the reference. Production default is now `--nch 8 --t0 28` (~2-3%).
