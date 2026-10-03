@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 200809L
 /* loeschsearch -- exhaustive search for long arithmetic progressions of
  * Loeschian numbers inside a sieved window [0, N].
  *

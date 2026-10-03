@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 200809L
 /* apsearch -- Wroblewski-style two-stage search for long Loeschian APs.
  *
  * Build: cc -O3 -march=native -std=c11 -o build/apsearch src/c/apsearch.c

@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 200809L
 /* loeschclass -- long Loeschian APs with steps far too large to sieve [0,N].
  *
  * Build: cc -O3 -march=native -std=c11 -o build/loeschclass src/c/loeschclass.c

@@ -133,8 +133,8 @@ static u64 isqrt_u64(u64 n) {
 
 /* Full factorization of the large cofactor into primes with multiplicity.
  * Every remaining factor exceeds sp_max, so there are at most a handful. */
-static int nfac;
-static u64 fac[64];
+static __thread int nfac;      /* thread-local: stage 3 runs under OpenMP in the CUDA engine */
+static __thread u64 fac[64];
 
 static void factor_rec(u64 n) {
     if (n == 1) return;
