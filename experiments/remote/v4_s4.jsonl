@@ -10,3 +10,15 @@
 {"K":771983,"shift":2,"res":1.03304e+11,"surv":51590,"conf":49429,"best":48,"gpu_s":1.47,"cpu_s":1.19,"kern_s":1.4414,"covered":2.13602e+18,"overflow":false}
 {"K":665909,"shift":3,"res":1.37113e+11,"surv":68581,"conf":65764,"best":48,"gpu_s":4.80,"cpu_s":1.67,"kern_s":3.9335,"covered":2.42738e+18,"overflow":false}
 {"K":610198,"shift":12,"res":4.67017e+09,"surv":1461,"conf":1423,"best":48,"gpu_s":0.41,"cpu_s":0.04,"kern_s":0.0434,"covered":2.49993e+18,"overflow":false}
+{"K":695374,"shift":1,"res":7.5412e+12,"surv":3770704,"conf":3588829,"best":48,"gpu_s":100.89,"cpu_s":96.01,"kern_s":100.8627,"covered":3.05796e+18,"overflow":false}
+{"K":610198,"shift":13,"res":4.67017e+09,"surv":1443,"conf":1408,"best":48,"gpu_s":0.07,"cpu_s":0.04,"kern_s":0.0669,"covered":3.13051e+18,"overflow":false}
+{"K":628008,"shift":0,"res":4.67017e+09,"surv":1165,"conf":1112,"best":48,"gpu_s":0.23,"cpu_s":0.02,"kern_s":0.0906,"covered":3.20307e+18,"overflow":false}
+{"K":673629,"shift":4,"res":4.67017e+09,"surv":1297,"conf":1274,"best":48,"gpu_s":0.64,"cpu_s":0.03,"kern_s":0.0781,"covered":3.27562e+18,"overflow":false}
+{"K":663646,"shift":7,"res":4.67017e+09,"surv":1351,"conf":1324,"best":48,"gpu_s":27.90,"cpu_s":0.03,"kern_s":27.8492,"covered":3.34817e+18,"overflow":false}
+{"K":608828,"shift":0,"res":7.92842e+09,"surv":2468,"conf":2402,"best":48,"gpu_s":0.09,"cpu_s":0.05,"kern_s":0.0933,"covered":3.44228e+18,"overflow":false}
+{"K":673367,"shift":4,"res":1.03632e+12,"surv":519286,"conf":497475,"best":48,"gpu_s":14.05,"cpu_s":13.53,"kern_s":14.0181,"covered":3.73041e+18,"overflow":false}
+{"K":605089,"shift":4,"res":4.67017e+09,"surv":1494,"conf":1324,"best":48,"gpu_s":0.06,"cpu_s":0.03,"kern_s":0.0600,"covered":3.80296e+18,"overflow":false}
+{"K":671841,"shift":0,"res":4.67017e+09,"surv":1187,"conf":1167,"best":48,"gpu_s":1.01,"cpu_s":0.02,"kern_s":0.4620,"covered":3.87552e+18,"overflow":false}
+{"K":618648,"shift":1,"res":4.67017e+09,"surv":1134,"conf":1111,"best":48,"gpu_s":0.04,"cpu_s":0.02,"kern_s":0.0394,"covered":3.94807e+18,"overflow":false}
+{"K":613075,"shift":3,"res":4.67017e+09,"surv":1242,"conf":1220,"best":48,"gpu_s":0.26,"cpu_s":0.03,"kern_s":0.0404,"covered":4.02063e+18,"overflow":false}
+{"K":749831,"shift":1,"res":2.07176e+12,"surv":960641,"conf":899272,"best":48,"gpu_s":26.10,"cpu_s":22.07,"kern_s":26.0779,"covered":4.33147e+18,"overflow":false}
