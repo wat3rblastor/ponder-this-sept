@@ -1,0 +1,4 @@
+{"K":610198,"shift":0,"res":4.67017e+09,"surv":1471,"conf":1446,"best":19,"gpu_s":1.28,"cpu_s":1.22,"kern_s":0.0422,"covered":7.25543e+16,"overflow":false}
+{"K":610198,"shift":3,"res":4.67017e+09,"surv":1405,"conf":1376,"best":25,"gpu_s":1.32,"cpu_s":0.04,"kern_s":0.0419,"covered":1.45109e+17,"overflow":false}
+{"K":624608,"shift":1,"res":4.67017e+09,"surv":1401,"conf":1367,"best":25,"gpu_s":2.33,"cpu_s":0.06,"kern_s":1.5899,"covered":2.17663e+17,"overflow":false}
+{"K":638219,"shift":1,"res":1.41433e+11,"surv":70743,"conf":67823,"best":34,"gpu_s":15.06,"cpu_s":1.73,"kern_s":15.0330,"covered":5.21662e+17,"overflow":false}
