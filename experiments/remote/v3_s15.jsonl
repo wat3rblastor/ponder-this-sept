@@ -90872,3 +90872,5 @@
 {"K":49747,"shift":12,"res":4.67017e+09,"surv":439,"conf":435,"best":54,"gpu_s":0.07,"cpu_s":0.02,"kern_s":0.0746,"covered":6.34372e+21,"overflow":false}
 {"K":182691,"shift":4,"res":4.67017e+09,"surv":537,"conf":529,"best":54,"gpu_s":0.09,"cpu_s":0.02,"kern_s":0.0896,"covered":6.34379e+21,"overflow":false}
 {"K":272443,"shift":3,"res":6.19858e+09,"surv":1098,"conf":1080,"best":54,"gpu_s":0.10,"cpu_s":0.04,"kern_s":0.0970,"covered":6.34388e+21,"overflow":false}
+{"K":298835,"shift":2,"res":3.40922e+11,"surv":63339,"conf":61776,"best":54,"gpu_s":95.22,"cpu_s":1.50,"kern_s":3.1957,"covered":6.34404e+21,"overflow":false}
+{"K":7293,"shift":12,"res":4.67017e+09,"surv":518,"conf":470,"best":54,"gpu_s":0.03,"cpu_s":0.01,"kern_s":0.0322,"covered":6.34411e+21,"overflow":false}

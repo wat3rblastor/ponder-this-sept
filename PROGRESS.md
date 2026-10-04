@@ -790,3 +790,15 @@ cancels the cost 131/73 = 1.795. Planner-model ceiling +4.9% under optimistic as
 0.0-0.4% with measured GPU cost and the real window offset; raising MODCAP to 1.5e17 loses 5%.
 Also closed this hour (profiler cycle 6): queued launches (kernels already run 99% of wall time
 per engine; <= 1%).
+
+### 2026-10-04 01:15 UTC — three 57s, no 58 yet; next tranche (tag v4)
+
+After 7.6 h on this box (v2 + v3, ~2.1e16 residues; 2.7e16 across all GPU runs): 12 distinct
+progressions of 55+ terms (three 57s, four 56s, five 55s), all in ANSWER.md; no 58. With ~13% of
+55+ runs expected to be a 58, the chance of none in 12 is ~20%.
+v3 was 80% done; replaced by a fresh cost-ranked plan with a wider range
+(`COSTAWARE=1 MODCAP=2e16 plan_cost.py --budget-res 4e16 --kmax 1200000 --smax 6000`, finished
+units excluded, 2.66M units, tag `v4`). Planner yield is now ~7.8e-17 per residue (it was
+1.6e-16 at the start of v2): ~0.28 planner-expected 58s per hour, ~0.23 after the 0.82
+calibration. Profiler: no software change worth >= 3% left (queued launches, class split across
+GPUs, 131 pin all measured and closed); the GPUs are power-capped at 550 W.
